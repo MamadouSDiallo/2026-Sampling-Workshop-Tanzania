@@ -1,0 +1,375 @@
+---
+title: "Design-based Direct Estimators"
+subtitle: "Survey Sampling and Estimation Methods"
+author: "Mamadou S Diallo, Ph.D"
+date: today
+format:
+  html:
+    theme: readable
+    toc: true
+    toc-depth: 3
+    code-fold: false
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Survey Sampling 
+
+
+## Random Sample Selection
+
+**Survey sampling** is the process of selecting a set of elements from a target population, measure information on the set, and generalize measurements to the target population. 
+
+<img src="../assets/images/sampling.png" alt="sampling" style="height: 250px; width:550px;"/>
+
+
+## Probability Sampling {.smaller}
+
+- Random selection mechanism 
+  - Sample units are selected with **know** probabilities of inclusion
+  - Randomness comes from the selection/inclusion mechanism 
+  - Survey-based estimates to account for the variability due to sampling 
+
+- Sample weight is the mechanism used to generalize from the sample to the target population
+  - Interpretation: number of units from the population represented by one sampling unit
+  - Design sample weight obtained from the sampling method
+  - Further adjustments to account for non-response and other post-selection information 
+
+
+## Generalization of Sample Results to Population
+
+- The sample weight is the main mechanism to generalize findings from the sample to the target population
+
+- The usual interpretation of the sample weight is the number of units in the population represented by the selected unit
+
+- Usual approach is 
+  - Obtain the initial (design) weight from the final probability of selection
+  - Adjust the design weight to account for non-response (nonresponse weight)
+  - If applicable, adjust the nonresponse weight to calibrate sample distribution of key auxiliary variables to their known population distribution
+
+
+## Design Weight
+
+- Design weight , $𝑤_i$, as reciprocal of the probability of inclusion $𝜋_𝑖$
+$$𝑤_𝑖=\frac{1}{𝜋_𝑖},$$
+where $𝜋_𝑖$ is obtained according to the sampling design. 
+
+- Examples of sample weights
+  - SRS : $𝑤_𝑖=\frac{𝑁}{𝑛}$ (self-weighting)
+  - PPS : $𝑤_𝑖=\frac{\sum_ix_i}{x_i}$, where $x_i$ is the measure of size for unit $i$
+  - Two-stage: $w_{ij}=\frac{1}{\pi_i} \frac{1}{\pi_{j|i}}$ , where $\pi_i$ is the probability of inclusion of PSU $𝑖$ and $\pi_{(j|i)}$ is the conditional probability of inclusion of SSU $𝑗$ from PSU $𝑖$.
+  
+## Weight Adjustments
+  
+- One common method consists of the following
+  - Create response classes using auxiliary variables correlated to the response status
+  - Within each response, redistribute the weight of the non-respondents to the respondents 
+ 
+- Another method, called propensity modeling, consists of the following
+  - Build a logistic regression to predict the likelihood of response vs non-response
+  - Apply the model  and generate the log probability of responding for each case
+  - Calculate the weighting adjustment factor as the inverse of this probability
+
+In both of these methods, an adjustment factor ($a_i$) is computed for sampling unit $i$ and multiplied by the pre-adjusted weight ($w_i$) to obtain the adjusted weight ($w_{a(i)}$) $$w_{a(i)}=a_iw_i$$
+
+## Point Estimates
+
+The point estimate is obtained by applying the sample weight to the sample estimates. For example, the parameter mean is defined as $$\bar{𝑌}=  \frac{\sum_{i=1}^{N} y_i}{𝑁},$$
+where $𝑁$ is the number of units in the population. The point estimate (or sample weighted estimate) is 
+$$\hat{\bar{Y}}= \frac{\sum_{i=1}^{n} w_i y_i}{\sum_{i=1}^{n} w_i},$$ 
+where $n$ is the sample size and $\hat{\bar{Y}}$ is the estimated total and $\hat{N}=\sum_{i=1}^{n} w_i$  is the estimated population size since unknown in most studies. 
+
+
+## Linearization (Taylor Series) Estimation 
+
+In most situations , variance formulas are not closed forms. 
+
+Taylor’s theorem allows us to linearize smooth function $h(t_1, t_2, …, t_𝑘)$ of population totals to ($a_0, a_1, …, a_𝑘$ are constants) $$ h(t_1, t_2, …, t_𝑘 ) = a_0 + \sum_{i=1}^k a_i t_i $$
+
+Hence, if we can write a parameter of interest 𝜃 as a smooth function $h(t_1, t_2, …, t_𝑘)$ then we can approximate the variance $V(\hat{\theta})$ by 
+$$V_L(h(\hat{t}_1, \hat{t}_2, …, \hat{t}_𝑘)) = V(\sum_{i=1}^k a_i \hat{t}_i)$$
+
+## Taylor Estimation of the Ratio
+
+1. Express the ratio estimator as a function of totals 
+$$R=h(t_x, t_y)=\frac{t_y}{t_x} \quad   and \quad \hat{R}=h(\hat{t}_x, \hat{t}_y)=\frac{\hat{t}_y}{\hat{t}_x}$$
+2. Using Taylor Series for linearization, we get
+$$\hat{R} \approx R - \frac{t_y}{t_x^2} (\hat{t}_x - t_x) + \frac{1}{t_x} (\hat{t}_y - t_y) $$
+3. After some algebra and substitutions, we get the estimated variance under SRS as 
+$$V_L(\hat{R}) = (1−\frac{n}{N})  \frac{s_e^2}{n\bar{x}^2},$$
+where $s_e^2$ is the variance of $e_𝑖= y_i−\hat{R}x_i$.
+
+## **Practice**: R Survey Package
+
+The R Survey package is has become a reference tools for analyzing complex survey data. The common approach with the package is 
+
+&emsp; 1. Specicfy the sampling design using the function `svydesign()`    
+&emsp; 2. Use the appropriate function e.g. `svymean()` to estimate
+
+Note that are other functions provided by the package such as create replicate weights and produce graphs.
+
+To install and use the package, run the two lines of code below
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+install.packages("survey")
+library(survey)
+```
+
+## **Practice**: Linearization using R Survey (1/2)
+
+The Academic Performance Index (API) is computed for all California schools based on standardized testing of students. The dataset `apistrat` from R survey has the following variables among others
+
+- `cds` unique identifier 
+- `dnum` district number
+- `cname` county name
+- `stype` is the type of school (Elementary/Middle/High)
+- `pw` is the sample weight
+- `fpc` the number of schools per stype
+- `enroll` the number of students enrolled 
+- `api00` the API for the year 2000
+
+Assuming that dnum and stype are the psu and stratification variables, use R survey to calculate the average number of students enrolled?
+
+## **Practice**: Linearization using R Survey (2/2)
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+data(api)
+
+# Sample design  (assumed design: dnum is the psu, stype is the stratification variable)
+api_svy_design <- svydesign(
+  ids = ~dnum, 
+  strata = ~stype, 
+  weight = ~pw, 
+  nest = TRUE, 
+  data = apistrat
+  )
+
+# Estimated total enrolled students
+total_enroll <- svytotal(~enroll, design = api_svy_design)
+
+total_enroll
+
+cv(total_enroll)
+```
+
+
+## Replication-based Estimation
+
+1. Chose the replication method e.g., BRR, Bootstrap, or Jackknife
+2. Obtain the design weight ($w$) and apply all the adjustments to derive the final sample weigh ($w^∗$)
+3. From the design weight, produce R replicate weights $w_1$, …, $w_R$ according to the replication method chosen in step 1
+4. Apply all the adjustments from step 2 on every design replicate weight to obtain the final replicate weights $w_1^∗$, …, $w_R^∗$
+5. Calculate the replication-based variance as 
+$$\hat{V}_R(\hat{\theta}) = \sum_{r=1}^R c_r(\hat{\theta}^*-\hat{\theta}),$$ 
+where $c_r$ depend on the replication method 
+  - $𝑐_𝑟 = 1/𝑅$ for BRR
+  - $𝑐_𝑟 = 1/(𝑅−1)$ for Bootstrap
+  - $𝑐_𝑟 = (𝑛_ℎ−1)/𝑛_ℎ$  for Jackknife
+
+## **Practice**: Replicate-based Estimation using R Survey (1/2)
+
+Using the `apistrat` dataset, create bootstrap replicate weights where `dnum` is the cluster ID variable.
+
+Estimate the average number of enrolled students using the bootstrap replicate weights.
+
+## **Practice**: Replicate-based Estimation using R Survey (2/2)
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(survey)
+
+data(api)
+
+# Sample design  (assumed design: dnum is the psu, stype is the stratification variable)
+api_svy_design <- svydesign(
+  ids = ~dnum,
+  strata = ~stype,
+  weight = ~pw,
+  nest = TRUE,
+  data = apistrat
+)
+
+# Convert the design to a replicate
+api_rep_design <- as.svrepdesign(
+  api_svy_design, 
+  type = "bootstrap", 
+  replicates = 500
+  )
+
+# Estimated total enrolled students
+total_enroll <- svytotal(~enroll, design = api_rep_design)
+
+total_enroll
+```
+
+# Domain Estimation
+
+## Notation
+
+Domain estimates are critical to help better tailor interventions.
+
+Suppose that we want to estimate the mean for domain $U_d$ from the target population $U$.
+
+The domain parameter is $Y_d = \frac{\sum_{U_d} y_d}{N_d}$, where $N_d$ is the number of units in domain $d$ ($U_d$).
+
+To derive the formulas for the domain estimator, we will introduce a domain indicator $\delta_d$ as follows 
+
+$$\delta_{dj} =\begin{cases} 1 & j \in U_d \\
+                             0 & otherwise
+       \end{cases}$$
+
+## The Domain Estimator for mean
+
+Using the notation from the previous slide, we have the domain mean estimator as follows 
+
+$$ \hat{\bar{Y}}_d = \frac{\sum_{j \in U_d} w_j \delta_{dj} y_j}{\sum_{j \in U_d} \delta_{dj}}$$
+A Taylor linearization variance is
+
+$$ V_L(\hat{\bar{Y}}_d) = \frac{v(\hat{e}_{dj})}{\hat{N}_d^2},$$
+where $\hat{e}_{dj} = a_{dj} (y_j - \hat{\bar{Y}})$. 
+
+
+**Important.** No new theory is needed to derive the variance. We only have to replace $y_j - \hat{\bar{Y}}$ by $a_{dj} (y_j - \hat{\bar{Y}})$ in the general linearization formula. 
+
+## **Practice**: Domain estimation using R Survey (1/2)
+
+Using the dataset `apistrat`, calculate the Taylor-based domain estimate of the total number of enrolled student per county?
+
+## **Practice**: Domain estimation using R Survey (2/2)
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+data(api)
+
+# Sample design (assumed design: dnum is the psu, stype is the stratification variable)
+api_svy_design <- svydesign(
+  ids = ~dnum, 
+  strata = ~stype, 
+  weight = ~pw, 
+  nest = TRUE, 
+  data = apistrat
+  )
+
+# Estimated total enrolled students
+total_enrolled_by_county <- svyby(
+  ~enroll,
+  by = ~cname, 
+  FUN = svytotal, 
+  vartype = c("se", "ci", "cv"), 
+  design = api_svy_design
+)
+
+head(total_enrolled_by_county, 10) # Show the first 10 records (counties)
+```
+
+# Generalized Regression (GREG) Estimator
+
+## GREG Estimator for Totals
+
+In the presence of auxiliary data, regression-based estimators may improve efficient of the direct estimators. 
+
+Let assume that auxiliary data $X = (X_1, ..., X_p)^T$ is available for all units in the population. 
+
+We can derive a more efficient estimator of the total as 
+
+$$ \hat{Y}_{GR} = \hat{Y} + (X-\hat{X})^T\hat{\beta},$$
+where $\hat{X} = \sum_s w_j X_j$ and $\hat{\beta}$ is the solution to the weighted-least squared (WLS) equations.
+
+## GREG Estimator for Totals
+
+We can re-write the GREG estimator as an expansion estimator 
+
+$$ \hat{Y}_{GR} =  \sum_{s} w_j^* y_j,$$
+where the weight $w_j^* = w_j g_j$ and 
+
+$$ g_j = 1 + (X - \hat{X})^T \big( \sum_s w_j x_j x_j^T / c_j\big)^{-1} x_j / c_j $$
+Note that $w_j^*$ does not depend on $y-values$, hence the same weight is applied to all variable of interest.
+
+## Other of Ratio Estimators 
+
+The **ratio** estimator $$ \hat{Y}_R = \frac{\hat{Y}}{\hat{X}} X $$ is a special case of the GREG estimator with the weights $w_j^* = w_j \frac{X}{\hat{X}}$.
+
+Similarly, the **poststratified** estimator $$ \hat{Y}_{PS} = \sum_{g=1}^{G} \frac{N_{.g}}{\hat{N}_{.g}} \hat{Y}_{.g} $$ is also a special case of the GREG estimator with the weights $w_j^* = w_j \frac{N_{.g}}{\hat{N}_{.g}}$. 
+
+## **Practice**: GREG Estimation using R Survey (1/2)
+
+Assume that we know that in the population there were 6194 students in elementary school, 1018 in middle school, and 755 in high school. These are the control numbers.
+
+Using the GREG estimator, calculate the average API in 2000 and the total number of enrolled students. 
+
+Verify that the total number of enrolled student by school type is the same as the control numbers. 
+
+## **Practice**: GREG Estimation using R Survey (1/2)
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+data(api)
+
+# Sample design (assumed design: dnum is the psu, no strata)
+api_svy_design <- svydesign(
+  ids = ~dnum, 
+  weight = ~pw, 
+  nest = TRUE, 
+  data = apistrat
+  )
+
+# Control totals
+pop.totals <- c(`(Intercept)` = 6194, stypeH = 755, stypeM = 1018)
+api_calib_design <- calibrate(api_svy_design, ~stype, pop.totals)
+
+# Estimated total enrolled students
+svytotal(~enroll, design = api_calib_design)
+
+# Checking that the auxiliary variables sum to the control totals
+svytotal(~stype, design = api_calib_design)
+```
+
+## GREG Domain Estimator for total
+
+The GREG domain estimator for the total is obtained using a similar approach as for the general domain estimator 
+$$ \hat{Y}_{dGR} = \sum_{j \in s_d} w_j^* y_j, $$
+Another useful form of the GREG estimator is 
+
+$$\hat{Y}_{dGR} = \sum_{j \in U_d}  \hat{y}_j + \sum_{j \in s_d} w_j (y_j - \hat{y}_j), $$
+Hence, the GREG estimator is the sum of the predictive values and the weighted sum of the residuals.
+
+## GREG Domain Specific Estimator for total
+
+Using similar approach as for the domain estimator and assuming that **$X_d = \sum_{j \in U_d} x_j$ are known for all $d$**, we have that 
+$$ \hat{Y}_{dGR}^* = \hat{Y}_d +  (X_d-\hat{X}_d)^T\hat{\beta_d}. $$
+The estimator above can be written as follows
+$$ \hat{Y}_{iGR}^* = \sum_{j \in s} w_{dj}^* y_{dj}, $$
+where $w_{dj}^* = w_j g_{dj}^*$ and 
+
+$$ g_{dj}^* = 1 + (X_d - \hat{X_d})^T \big( \sum_{j \in s} w_j x_{dj} x_{dj}^T / c_j\big)^{-1} x_{dj} / c_j $$
+
+# Synthetic Estimators
+
+## Definition 
+
+An estimator is called a synthetic estimator if a **reliable direct estimator for a large area**, covering several small areas, is used to derive an indirect estimator for a small under the assumption that the **small areas have the same characteristics as the large area** (Gonzalez 1973). 
+
+## Example 1 of a Synthetic Estimator 
+
+Suppose that we want to estimate the domain mean and we do not have auxiliary data. 
+
+We could use the direct overall population mean $\hat{\bar{Y}}$ to approximate the domain mean. Hence, the synthetic estimator $\hat{Y}_{dS}$ is given by
+
+$$ \hat{Y}_{dS} = \hat{\bar{Y}} = \frac{\hat{Y}}{\hat{N}} $$
+
+**Important** If the overall population has different characteristics as the domain, it can lead to significant bias.
+
+## Example 2 of a Synthetic Estimator 
+
+A ratio-synthetic estimator of the total is $$ \hat{Y}_{dRS} = X_d \frac{\hat{Y}}{\hat{X}}. $$
+
+In this case, bias of $\hat{Y}_{dRS}$ relative to $Y_d$ is approximately $X_d (R - R_d) / Y_d$ which will be small if the domain-specific ratio $R_d = Y_d/X_d$ is close to the overall ration $R = Y/X$.
+
+## Composite Estimator 
+
+For a population parameter $\theta$, we can define the composite estimator as the weighted average of the direct estimator and the synthetic estimator. 
+
+$$ \hat{\theta_d}^{composite} = \alpha \hat{\theta}_d^{Direct} + (1-\alpha) \hat{\theta}_d^{Synthetic} $$

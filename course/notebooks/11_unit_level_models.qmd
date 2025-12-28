@@ -1,0 +1,292 @@
+---
+title: "SAE - Unit Level Model"
+subtitle: "Modeling Poverty Rates at the Unit Level"
+author: "Mamadou S Diallo, Ph.D"
+date: today
+format:
+  html:
+    theme: readable
+    toc: true
+    toc-depth: 3
+    code-fold: false
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+
+```{r}
+
+library(dplyr)
+library(emdi)
+library(gt)
+library(haven)
+library(readxl)
+library(srvyr)
+library(tibble)
+
+```
+
+
+## FGT Poverty Measures 
+
+The Foster-Greer-Thorbecke (FGT) class of poverty measures is a widely used set of indicators in poverty analysis. The FGT measures are defined as follows:
+
+$$ F_{\alpha d} = \frac{1}{N_d} \sum_{j=1}^{N_d} \left( \frac{z - E_{dj}}{z} \right)^\alpha I(E_{di} < z) $$
+
+where:
+
+- $N_d$ is the total population in area $d$, 
+- $E_{dj}$ is the income or consumption expenditure of individual or household $j$ in area $d$, 
+- $z$ is the poverty line, $I(E_{di} < z)$ is an indicator function that equals 1 if the income or expenditure of individual or household $j$ is below the poverty line and 0 otherwise, and 
+- $\alpha$ is a parameter that determines the sensitivity of the measure to poverty depth.
+     - $\alpha = 0$ : Headcount Ratio (HCR) - measures the proportion of the population below the poverty line.
+     - $\alpha = 1$ : Poverty Gap Index (PGI) - measures the average  
+    proportionate shortfall of the total population from the poverty line.
+     - $\alpha = 2$ : Squared Poverty Gap Index (SPGI) - gives more weight to those who are further below the poverty line, emphasizing the severity of poverty.
+
+It is assumed that there exists a one-to-one transformation $Y_{dj} = T(E_{dj})$ of the welfare variables, $E_{dj}$ , such that the vector $Y_d = (y_{d1}, ..., y_{dN_d})^T ∼ N(\mu_d
+, \Sigma_d)$
+
+For example, we may have $T(x) = log(x)$.
+
+## Wrangling and Combining the Datasets
+
+```{r}
+
+pov_df <- 
+  haven::read_sav("../data/eicvmb2020/BASE PAUVRETE.sav") |>
+  dplyr::rename_with(tolower) |>
+  dplyr::arrange(id01, id02)
+  
+
+communes_df <- 
+  readxl::read_excel("../data/communes_data.xlsx", sheet="menages") |>
+  dplyr::rename_with(tolower) |>
+  dplyr::arrange(id_commune, id_menage)
+
+# commune_names_df = readxl::read_excel("../data/communes_data.xlsx", sheet="communes")
+
+```
+
+### Inspecting the Datasets
+
+Definition of the communes
+
+```{r}
+
+dim(communes_df)
+head(communes_df)
+
+```
+
+Poverty Survey Data
+
+```{r}
+
+dim(pov_df)
+
+pov_df |>
+  dplyr::select(idm, id_zd, id01, id02, id03) |>
+  head(7)
+
+```
+
+Merging the datasets to add the communes to the survey data
+
+```{r}
+
+pov_merged_df <- 
+  pov_df |>
+  dplyr::left_join(
+    communes_df,
+    by = c("idm" = "id_menage")
+  ) |>
+  dplyr::rename(urban = milieu)
+
+
+pov_merged_df |> 
+  dplyr::select(idm, id01, id_commune, nom_commune) |>
+  head(7)
+
+```
+
+
+## Auxiliary Variables
+
+As seen before, we need to identify auxiliary variables at the unit (household) area level that are:      
+
+ - **correlated with the target variable** (poverty status),     
+ - **available from census or administrative data or Big data**.
+
+
+For illustration, we will consider these auxiliary variables available from census data at the commune level:
+
+ - `urban` : Urban / Rural indicator
+ - `hhsize` : household size
+ - `n_rooms` : number of rooms
+
+
+```{r}
+
+hh_census <- 
+  haven::read_sav("../data/rgph2008/habit.sav") |>
+  dplyr::rename_with(tolower) |>
+  dplyr::select(
+    commune, urhabit, population, h02
+  ) |>
+  dplyr::mutate(
+    commune = as.integer(commune)
+  )
+
+head(hh_census) |> gt::gt()
+
+```
+
+Creating the indicators
+
+```{r}
+
+hh_census <- 
+  hh_census |>
+  dplyr::mutate(
+    urban = ifelse(urhabit == 1, 1, 0)
+  ) |>
+  dplyr::rename(
+    hhsize = population,
+    n_rooms = h02
+  )
+
+head(hh_census) |> gt::gt()
+
+```
+
+## Removing Missing Communes
+
+**Issue**: Some communes in the sample are not in the census. Maybe, it is a nomenclature issue.
+
+```{r}
+
+communes_not_in_census <- 
+  pov_merged_df |>
+  dplyr::filter(
+    !(id_commune %in% hh_census$commune)
+  )
+
+head(communes_not_in_census) |> gt::gt()
+
+```
+
+Let's exclude these communes for now
+
+What are the common communes between the two datasets?
+
+```{r}
+
+intersect_communes <- 
+  intersect(
+    pov_merged_df$id_commune,
+    hh_census$commune
+  )
+
+```
+
+Let's filter both datasets to keep only these communes and then combine them
+
+```{r}
+
+pov_merged_df2 <- 
+  pov_merged_df |>
+  dplyr::filter(
+    id_commune %in% intersect_communes
+  )
+
+hh_census2 <- 
+  hh_census |>
+  dplyr::filter(
+    commune %in% intersect_communes
+  )
+
+```
+
+
+## Unit Level Model Estimation
+
+
+```{r}
+
+umodel_pov_abs <- 
+  emdi::ebp(
+    fixed = tot_agg_def ~ as.factor(urban) + hhsize + n_rooms,
+    pop_data = hh_census2,
+    pop_domains = "commune", 
+    smp_data = pov_merged_df2,
+    smp_domains = "id_commune",
+    threshold = 11091.37, # poverty line in 2020
+    transformation = "log",
+    weights = "weight",
+    #interval = c(1100,310500),
+    L = 15, # much larger number in practice
+    MSE = TRUE,
+    B = 50, # much larger number in practice
+    seed = 123,
+    na.rm = TRUE,
+    # custom_indicator = list(
+    #   HCR_singleHH = function(y, threshold) {
+    #                           mean(y < threshold)
+    #                     }
+    # )
+  )
+
+summary(umodel_pov_abs)
+
+```
+
+
+
+
+## Did the CVs Improve ?
+
+```{r}
+
+est <- umodel_pov_abs$ind |>
+  dplyr::select(Domain, Head_Count) |>
+  dplyr::rename(
+    est_taux = Head_Count
+  )
+
+mse <- umodel_pov_abs$MSE |>
+  dplyr::select(Domain, Head_Count) |>
+  dplyr::rename(
+    mse_taux = Head_Count
+  )
+  
+cvs <- est |>
+  dplyr::inner_join(
+    mse,
+    by = "Domain"
+  ) |>
+  dplyr::mutate(
+    cv_model = sqrt(mse_taux) / (est_taux + 1e-10),
+  ) |>  
+  dplyr::arrange(desc(cv_model))
+
+
+cvs |>
+  gt::gt() |>
+  gt::fmt_percent(
+    columns = c(cv_model),
+    decimals = 1
+  ) |>
+  gt::cols_label(
+    Domain = "Commune",
+    est_taux = "Model Estimate",
+    mse_taux = "Model MSE",
+    cv_model = "Model CV"
+  )
+
+```
+
+
+

@@ -1,0 +1,368 @@
+---
+title: "General Linear Mixed Models (GLMMs)"
+subtitle: "Theory, Estimation, and Applications in R"
+author: "Mamadou S Diallo, Ph.D"
+date: today
+format:
+  html:
+    theme: readable
+    toc: true
+    toc-depth: 3
+    code-fold: false
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Introduction
+
+### Background
+
+-   The simple multivariate regression assumes that the observations are
+    independent.
+
+-   In many applications, the observations are grouped, nested, or
+    correlated in some other ways.
+
+-   Mixed Models are extension of simple multivariate regression models
+    to account for :
+
+    -   Non-independent observations
+    -   Multilevel and hierarchical
+    -   Longitudinal studies
+    -   Etc.
+
+### Examples of Correlated Observations
+
+-   We are interested in measuring the satisfaction level of patients.
+    We select 15 patients from 30 hospitals.
+    -   In this example, patients from the same hospitals are
+        correlated.
+-   We are interested in measuring the performance of students. We
+    select 50 schools across the country. From each selected schools, we
+    select 15 teachers. Finally, from each teacher, we select 10
+    students.
+    -   We have a hierarchical situation leading to correlated
+        observations
+-   One of the oldest longitudinal study, **The Baltimore Longitudinal
+    Study of Aging (BLSA)**, has been following participants since 1958.
+    -   Researchers measure physical and cognitive changes associated
+        with aging in real time among a dedicated group of BLSA
+        participants who come in for testing at regular intervals over
+        the course of their lives.
+    -   Presently, participants under age 60 are assessed every 4 years;
+        those aged 60 to 79 years come every 2 years, and participants
+        aged 80 and older are assessed annually.
+
+### Naive methods
+
+-   Use the simple multivariate regression methods
+    -   violates the assumption of independence for the observations
+-   Use separate regressions for each group
+    -   Many models to deal with
+    -   Does not take advantage of the data from other groups
+    -   Data may be too small and noisy (unreliable)
+
+### Fixed and Random Effects
+
+-   Fixed effects
+    -   Constant across individuals e.g. education, ethnicity, gender,
+        income
+    -   Interested in estimating the variables effects
+    -   Can be seen as modeling a "core" situation
+-   Random effects
+    -   Realized value of a random variable
+    -   Used to model deviations from the core fixed effect regression
+
+## Mathematical Formulation
+
+### Linear Mixed Models
+
+The generalized linear model is defined as
+
+$$ \textbf{y} = \textbf{X} \bf{\beta } + \textbf{Z}\textbf{u} + \textbf{e}, $$
+where $y$ is the $n\times 1$ vector of the variable of interest,
+$\textbf{X}$ and $Z$ are known $n\times p$ and $n\times h$ matrices of
+full rank, and $u$ and $e$ are independently distributed with means 0
+and covariance matrices $G$ and $R$.
+
+Note that the variance of $y$ is function of the model parameters
+$\delta$
+
+$$ Var(\textbf{y}) = \textbf{V}(\bf{\delta}) = \textbf{R}(\bf{\delta}) + \textbf{ZG}(\bf{\delta})\textbf{Z}^T$$
+
+### Parameter of Interest
+
+We are interested in estimating a linear combination
+$$ \bf{\mu} = \textbf{l}^T \bf{\beta} + \textbf{m}^T \textbf{u} $$ of
+the regression parameter $\beta$ and the realization $\textbf{u}$.
+
+### Linear Estimator of $\mu$
+
+A linear estimator of $\mu$ is of the form
+$\hat{\mu} = \textbf{a}^T \textbf{y} + \textbf{b}$ with $\textbf{a}$ and
+$\textbf{b}$ known.
+
+$\bf{\hat{\mu}}$ is **model unbiased** for $\mu$ if
+$E_M(\hat{\mu}) = E_M(\mu)$.
+
+The mean squared error (MSE) of $\hat{\mu}$ is given by
+$MSE(\hat{\mu}) = E_M(\hat{\mu} - \mu)^2$.
+
+We have that $MSE(\hat{\mu}) \approx Var(\hat{\mu} - \mu)$ if
+$\hat{\mu}$ is unbiased for $\mu$.
+
+### BLUP Estimator
+
+The best linear unbiased estimator (BLUP) minimizes the MSE among the
+class of linear unbiased estimators and do not depend on normality of
+the random effects.
+
+The BLUP estimator of $\mu$ is
+
+$$ \hat{\mu}^B = l^T \tilde{\beta} + m^T \tilde{u} = l^T \tilde{\beta} + m^TGZ^TV^{-1}(y-x\tilde{\beta})$$
+
+where $\tilde{\beta} = \beta(\delta) = (X^T V^{-1} X)^{-1} X^T V^{-1} y$
+
+### MSE of BLUP
+
+The MSE of the BLUP is
+
+$$ MSE(\hat{\mu}^B) = g_1(\delta) + g_2(\delta) $$
+
+where
+
+-   $g_1(\delta) = m^T (G - GZ^TV^{-1}ZG)m$
+-   $g_2(\delta) = d^T(X^TV^{-1}X)^{-1}d$
+
+$g_1(\delta)$ accounts for the estimation of $\mu$\
+$g_2(\delta)$ accounts for the estimation of $\beta$
+
+### EBLUP Estimator
+
+The BLUP estimator depends on unknown parameters $\delta$.
+
+Replacing $\delta$ by its estimator $\hat{\delta}$, we get the empirical
+BLUP or EBLUP
+
+$$ \hat{\mu}^{EB} = \hat{\mu}^B(\hat{\delta}) $$ The MSEs of the EBLUP
+are
+
+$$ mse_1(\hat{\mu}^{EB}) \approx g_1(\hat{\delta}) + g_2(\hat{\delta}) + g_3(\hat{\delta}) $$
+
+$g_3(\delta)$ accounts for the estimation of $\delta$
+
+Reference: Rao and Molina (2015), section 5.2.5 & 5.2.6
+
+### ML Estimators
+
+Under normality, the log-likelihood is given by
+
+$$ l(\beta, \delta) = c - \frac{1}{2}log|V| - \frac{1}{2}(y - X\beta)^T V^{-1}(y-X\beta),$$
+where $c$ denotes a constant. The score function is
+
+$$ s_j() = \frac{\partial l(\beta, \delta)}{\partial \delta_j} = -\frac{1}{2} tr(V^{-1}V_{(j)}) - \frac{1}{2}(y-X\beta)^TV^{(j)}(y-X\beta) $$
+where $V_{(j)} = \partial V/\partial\delta_j$ and
+$V^{(j)} = -V^{-1}V_{(j)}V^{-1}$.And the information matrix is
+
+$$ I_{jk}(\delta) = \frac{1}{2} tr(V^{-1} V_{(j)}V^{-1} V_{(k)}). $$ The
+ML estimator of $\delta$ is obtained using the Fsher -scoring algorithm
+with updating function
+
+$$ \delta^{(a+1)} = \delta^{(a)} + [I(\delta^{(a)})]^{-1} s[\tilde{\beta}(\delta^{(a)}), \delta^{(a)}]$$
+
+Reference: Rao and Molina (5.2.4)
+
+### REML Estimators
+
+The REML method takes into account the loss in degree of freedom (df) by
+using the transformed data. The REML log-likelihood is given by
+
+$$ l_R(\delta) = c - \frac{1}{2}log|V| - \frac{1}{2}log|X^TV^{-1}X| - \frac{1}{2}y^T V^{-1}y,$$
+where $P = V^{-1} - V^{-1} X(X^TV^{-1}X)^{-1}X^TV^{-1}$. The score
+function is
+
+$$ s_{Rj}(\delta) = \frac{\partial l_R(\delta)}{\partial \delta_j} = -\frac{1}{2} tr(P V_{(j)}) + \frac{1}{2}y^TPV_{(j)}Py. $$
+And the information matrix is
+
+$$ I_{Rjk}(\delta) = \frac{1}{2} tr(P V_{(j)} P V_{(k)}). $$ The REML
+estimator of $\delta$ is obtained using the Fisher -scoring algorithm
+with updating function
+
+$$ \delta^{(a+1)} = \delta^{(a)} + [I_R(\delta^{(a)})]^{-1} s_R[\tilde{\beta}(\delta^{(a)}), \delta^{(a)}]$$
+
+Reference: Rao and Molina (5.2.4)
+
+### Generalized Linear Mixed Models (GLMMs)
+
+The GLMM model can be written as:
+
+$$ \bf{\mu} = \textit{E}(\textbf{y} | \textbf{X},\textbf{Z}) \quad \textrm{and} \quad g(\bf{\mu}) = \textbf{X} \bf{\beta} + \textbf{Z}\textbf{u}, $$
+where:
+
+-   $\textbf{y}$ is the vector of the response variable\
+-   $\textbf{X}\bf{\beta}$ are the fixed effects\
+-   $\textbf{Z}\textbf{u}$ are the random effects
+-   $g()$ is the link function
+
+## Special Cases
+
+These are special cases among many
+
+-   Linear Mixed Model (LMM)
+    -   link function : $g(x) = x$
+    -   Inverse of the link function: $g^{-1}(x) = x$
+    -   $\mu = \textbf{X} \bf{\beta} + \textbf{Z}\textbf{u}$
+-   Binary outcomes ($y=0$ or $y=1$)
+    -   link function (logistic): $g(x) = log(\frac{x}{1-x})$
+    -   Inverse of the link function:
+        $g^{-1}(x) = \frac{exp(x)}{1+exp(x)}$
+    -   $\mu = \frac{exp(\textbf{X}\bf{\beta}+\textbf{Z}\textbf{u})}{1+exp(\textbf{X} \bf{\beta} + \textbf{Z}\textbf{u})}$
+-   Count outcomes
+    -   link function (logarithm): $g(x) = log(x)$
+    -   Inverse of the link function: $g^{-1}(x) = exp(x)$
+    -   $\mu = exp(\textbf{X}\bf{\beta}+\textbf{Z}\textbf{u})$
+
+## Examples using R (*lme4*)
+
+### R lme4
+
+-   *lme4* is one of the main packages for fitting and analyzing linear
+    mixed models in R.
+
+-   To install *lme4*
+
+    ```{r echo=TRUE, eval=FALSE}
+# For the stable version
+install.packages("lme4")
+    ```
+
+    or
+
+    ```{r echo=TRUE, eval=FALSE}
+# For the development version from GitHub
+library("devtools")
+install_github("lme4/lme4", dependencies = TRUE)
+    ```
+
+### Sleep Study: Dataset from *lme4*
+
+A data frame with 180 observations on the following 3 variables.
+
+-   Description
+    -   Average reaction time per day (in milliseconds) for subjects in
+        a sleep deprivation study.
+    -   Days 0-1 were adaptation and training (T1/T2), day 2 was
+        baseline (B), and sleep deprivation started after day 2.
+-   Variables
+    -   Reaction: average reaction time (ms)
+    -   Days: number of days of sleep deprivation
+    -   Subject: subject number on which the observation was made.
+-   Use case
+    -   These data are from the study described in Belenky et al.
+        (2003), for the most sleep-deprived group (3 hours time-in-bed)
+        and for the first 10 days of the study, up to the recovery
+        period.
+    -   The original study analyzed speed (1/(reaction time)) and
+        treated day as a categorical rather than a continuous predictor.
+
+### Sleep Study: Loading the Dataset
+
+```{r echo=TRUE, warning=FALSE, message=FALSE}
+library(lme4)
+data(sleepstudy)
+head(sleepstudy, 15)
+```
+
+### Sleep Study: Model 1
+
+In the model below, we have\
+- One fixed effect: *Days*\
+- **Random intercept** per *Subject*
+
+```{r echo=TRUE, warning=FALSE, message=FALSE}
+(model1 <- lmer(Reaction ~ 1 + Days + (1 | Subject), data = sleepstudy))
+```
+
+## Sleep Study: Model 1
+
+For more details we can use *summary()*
+
+```{r echo=TRUE, warning=FALSE, message=FALSE}
+summary(model1)
+```
+
+### Sleep Study: Model 1
+
+*model1* is of the class *lmerMod*.
+
+To show the methods available for the *lmerMod* class , we run
+
+```{r echo=TRUE, warning=FALSE, message=FALSE}
+methods(class = "merMod")
+```
+
+We can also print the attributes with `attributes(model1)`
+
+### Sleep Study: Subject Level Adjustment
+
+```{r echo=TRUE, warning=FALSE, message=FALSE}
+ranef(model1)$Subject
+```
+
+### Sleep Study: Fixed effects
+
+```{r echo=TRUE, warning=FALSE, message=FALSE, fig.height=5}
+fixef(model1)
+coef(model1)$Subject[1:5, ]
+```
+
+### Sleep Study: Model Diagnosis
+
+Residuals plot to check that average errors is zero and not particular
+pattern (noise)
+
+```{r echo=TRUE, warning=FALSE, message=FALSE, fig.height=4, fig.width=6, fig.align='center'}
+plot(residuals(model1))
+```
+
+### Sleep Study: Model Diagnosis
+
+Normal Q-Q Plot to check the normality of the errors
+
+```{r echo=TRUE, warning=FALSE, message=FALSE, fig.height=4, fig.width=4, fig.align='center'}
+qqnorm(residuals(model1))
+qqline(residuals(model1))
+```
+
+### Sleep Study: Model 2
+
+In the model below, we have\
+- One fixed effect: *Days*\
+- **Random intercept** and **random slope** per *Subject*
+
+```{r echo=TRUE, warning=FALSE, message=FALSE}
+(model2 <- lmer(Reaction ~ 1 + Days + (Days | Subject), data = sleepstudy))
+```
+
+### Sleep Study: Models Comparison
+
+```{r echo=TRUE, warning=FALSE, message=FALSE}
+model3 <- lmer(Reaction ~ 1 + Days + (0 + Days | Subject), data = sleepstudy)
+model4 <- lmer(Reaction ~ 1 + Days + Days^2 + (Days | Subject), data = sleepstudy)
+model5 <- lmer(Reaction ~ 1 + Days + Days^2 + (0 + Days | Subject), data = sleepstudy)
+
+anova(model1, model2, model3, model4, model5)
+```
+
+### Contagious bovine pleuropneumonia: Generalized LMM
+
+```{r echo=TRUE, warning=FALSE, message=FALSE}
+gm1 <- glmer(cbind(incidence, size - incidence) ~ period + (1 | herd), family = binomial, data = cbpp)
+gm2 <- glmer(incidence ~ period + (1 | herd), family = poisson, data = cbpp)
+gm3 <- glmer(incidence + 1 ~ period + (1 | herd), family = Gamma, data = cbpp)
+gm4 <- glmer(incidence ~ period + (1 | herd), family = gaussian, data = cbpp)
+
+anova(gm1, gm2, gm3, gm4)
+```

@@ -1,0 +1,166 @@
+---
+title: "Unit Level Model"
+author: "Mamadou S Diallo, Ph.D"
+date: today
+format:
+  html:
+    theme: readable
+    toc: true
+    toc-depth: 3
+    code-fold: false
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Basic Unit Level Model
+
+The basic unit level model is given by 
+
+$$ y_{dj} = x_{dj}^T \beta + u_d + e_{dj}, \quad j=1, ..., n_d,  d=1, ...,m,$$
+
+where 
+
+&emsp; - $x_{dj}$ is a $p$ x 1 vector of the area level covariates,   
+&emsp; - $\beta = (\beta_1, ..., \beta_p)^T$ is $p$ x 1 vector of regression coefficients,    
+&emsp; - area effects $u_d \overset{iid}{\sim} (0, \sigma_u^2)$,     
+&emsp; - sampling errors $e_{dj} \overset{ind}{\sim} (0, \sigma_e^2)$,    
+&emsp; - $e_{dj}$ and $u_d$ independents for all $j$ in $d$.
+
+The regression coefficient $\beta$ and the models parameters $\delta = (\sigma_u^2, \sigma_e^2)$ are unknown and must be estimated. 
+
+## Estimation of Means $\mu_d$
+
+We are interested in the estimation of the area mean 
+
+$$\mu_d = x_{dj}^T \beta + v_d$$.
+
+Note that $\mu_d = x_{dj}^T \beta + v_d$ is a special case of the linear parameter $l_d^T \beta + m_d^T v$ with $l_d=\bar{X}_d$ and $m_d = (1, ..., 1)^T$, hence we may apply the results from the GLMM theory.
+
+Using the general GLMM theory, we can show that the EBLUP of $\mu_d$ is 
+
+$$ \mu_d^{EB} = \hat{\gamma}_d[\bar{y}_d + (\bar{X}_d - \bar{x}_d)^T\hat{\beta}] + (1-\hat{\gamma}_d)\bar{X}_d^T \hat{\beta} $$
+
+where $\hat{\gamma}_d = \frac{\hat{\sigma}_u^2}{\hat{\sigma}_u^2 + n_d \hat{\sigma}_e^2}$
+
+
+
+## Complex parameters
+
+Often, we are interested in estimating complex (nonlinear) parameters such as median. 
+
+A parameter $\eta(y_d)$ is complex if **$n_d = h(y_d)$** where $h$ is a **nonlinear** function of $y_d$.
+
+## Best predictor of $\eta_d$
+
+The best predictor of $n_d$ is 
+
+$$ \hat{\eta}_d^B =  E(\eta_d | y_{ds}) = \int h(y_d) f_{dr|s}(y)dy $$
+
+where $f_{dr|s}$ is the conditional distribution of $Y_{dr}$ given $y_{ds}$, $dr$ is the out of sample data in domain $d$, and $ds$ is the sample data in domain $d$. 
+
+
+The integral above do not have closed form
+
+Molina and Rao (2010) proposed a parameter approach for estimating complex parameters.
+
+## The EB Model (Molina-Rao)
+
+1. Estimate the unknown models parameters $\delta$ using ML or REML
+
+2. Draw out of sample vectors $y_{dr}^{(l)}, l=1, ..., L$ from the conditional distribution $Y_{dr} | y_{ds}$. 
+**Important**. Note that $N_d - n_d$ is may be a large number hence a univariate generation algorithm for $Y_{dr} | y_{ds}$ is critical.
+
+3. Augment each of the $L$ generated vector $y_{dr}^{(l)}$ with the sample data to obtain the "predicted census" $$y_{d}^{(l)} = (y_{dr}^{(l)}, y_{ds}^{(l)})^T$$
+
+4. Calculate the small area parameter $$\hat{\eta}_d^{(l)}(\hat{\delta}) = h(y_d^{(l)})$$
+
+5. Obtain an approximation of the EB estimator $$\eta^{EQB} = \frac{1}{L} \sum_{l=1}^{L} \hat{\eta}_d^{(l)}(\hat{\delta})$$
+
+## **Practice** (1/4)
+
+Let's practice the APIs of the R package sae for the Unit Level model
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='markup'}
+install.packages("emdi")
+
+library(emdi)
+
+packageVersion("emdi")
+
+```
+
+Consult the package documentation at [https://cran.r-project.org/web/packages/emdi/refman/emdi.html](https://cran.r-project.org/web/packages/emdi/refman/emdi.html)
+
+### **Practice** (2/4)
+
+Loading Example Data
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='markup'}
+
+data("eusilcA_pop")
+data("eusilcA_smp")
+
+head(eusilcA_pop, 7) # Show the first 10 rows of the population dataset
+head(eusilcA_smp, 7) # Show the first 10
+```
+
+### **Practice** (3/4)
+
+Fitting the unit-level model with analytical MSE estimation
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='markup'}
+
+ebp_std <- emdi::ebp(
+  fixed = eqIncome ~ gender + eqsize + cash + self_empl +
+    unempl_ben + age_ben + surv_ben + sick_ben + dis_ben + 
+    rent + fam_allow + house_allow + cap_inv + tax_adj, 
+  pop_data = eusilcA_pop,
+  pop_domains = "district", 
+  smp_data = eusilcA_smp, 
+  smp_domains = "district",
+  L = 50,
+  transformation = "box.cox",
+  MSE = TRUE,
+  B = 50,
+  seed = 123,
+  boot_type = "parametric",
+  na.rm = TRUE,
+)
+
+summary(ebp_std)
+
+```
+
+### **Practice** (4/4)
+
+How to extract results from the fitted model object `ebp_std`?
+
+**Point Estimates**
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='markup'}
+
+head(ebp_std$ind, 9)
+
+```
+
+**MSE Estimates**
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='markup'}
+
+head(ebp_std$MSE, 9)
+
+```
+
+**Transformation**
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='markup'}
+
+ebp_std$transformation
+
+```

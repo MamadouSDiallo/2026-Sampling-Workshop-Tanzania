@@ -1,0 +1,76 @@
+project:
+  type: website
+  output-dir: ../course_site
+  resources:
+    - assets/**
+
+website:
+  title: "svy course"
+  description: "Sample Design and Analysis - Tanzania 2026"
+  favicon: assets/images/favicon.ico
+  page-navigation: true
+  bread-crumbs: true
+  open-graph: true
+
+  navbar:
+    search: false
+    title: "Sample Design and Analysis - Tanzania 2026"
+    title-href: /
+    logo: assets/images/svylab_logo_landscape_v2.svg
+    logo-href: /
+
+  sidebar:
+    toc: true
+    depth: 3
+    search: true
+    logo: assets/images/svylab_logo_landscape_v2.svg
+    logo-href: /
+    contents:
+      - text: "Sample Design and Analysis - Tanzania 2026"
+        href: index.qmd
+      - section: "Introduction to R Programming for Data Analysis"
+        contents:
+          - notebooks/1_getting_started.qmd
+
+
+  page-footer:
+    left:
+      - text: "© Copyright 2026, svyLab."
+    center: "Sample Design and Analysis - Tanzania 2026"
+    right:
+      - text: "Back at Home"
+        href: /
+format:
+  html:
+    toc: true
+    toc-title: "Sample Design and Analysis - Tanzania 2026"
+    toc-location: right
+    toc-depth: 3
+    math: mathjax
+    theme: cosmo
+    # css: assets/styles/output.css
+    embed-resources: false
+    grid:
+      body-width: 1000px
+    link-external-newwindow: true
+    smooth-scroll: true
+    code-copy: true
+
+bibliography: references.bib
+link-citations: true
+lang: en
+
+execute:
+  echo: true
+  eval: true
+  warning: true
+  error: true
+  daemon: true
+  freeze: auto
+  cache: true
+
+knitr:
+  opts_chunk:
+    R.options:
+      repos: "https://cloud.r-project.org"
+      install.packages.compile.from.source: "never"

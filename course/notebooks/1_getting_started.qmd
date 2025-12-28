@@ -1,0 +1,86 @@
+---
+title: "Getting Started with R"
+subtitle: "An Introduction to R and RStudio for Data Analysis"
+author: "Mamadou S Diallo, Ph.D"
+date: today
+format:
+  html:
+    theme: readable
+    toc: true
+    toc-depth: 3
+    code-fold: false
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+# Why Use R?
+
+R is one of the most powerful and accessible tools for statistical analysis and data visualization. It stands out for several key reasons:
+
+- **Free and open source** — R is freely available for everyone, with an active global community continually improving it.  
+- **Built for data and statistics** — Unlike general-purpose programming languages, R was designed by statisticians for statistical computing and data analysis.  
+- **Extensive ecosystem** — Thousands of contributed packages extend R’s capabilities to nearly every area of analytics, from survey sampling and causal inference to machine learning.  
+- **Strong community support** — You’ll find abundant learning resources, user forums, and continuous academic and industry contributions.  
+
+> **In short:** R empowers you to handle, analyze, and visualize data efficiently — and it’s here to stay.
+
+---
+
+# A Brief History of R
+
+R has its roots in a long tradition of statistical programming languages:
+
+- **1980s:** The *S language* was developed at AT&T Bell Labs to make data analysis more accessible.  
+- **1995:** *R* was created by **Ross Ihaka** and **Robert Gentleman** at the University of Auckland, modeling many of S’s concepts but built as open source.  
+- **1997–present:** The *R Core Team* — an international group of volunteer developers — maintains and evolves the language.  
+- **2003:** The **R Foundation for Statistical Computing** was established to support and guide R’s development and community.
+
+Today, R is one of the world’s most widely used languages for statistics, data science, and research.
+
+---
+
+# Course Overview
+
+This introductory session provides a foundation for data analysis using R.  
+
+By the end, you will be able to install R and RStudio, write basic code, and understand how R organizes data and functions.
+
+**Course outline:**
+
+1. **Basics of R** — syntax, objects, and working environment  
+2. **The Tidyverse** — using `dplyr`, `tidyr`, and `readr` for clean and consistent data workflows  
+3. **Data Visualization with ggplot2** — building clear, publication-quality graphics  
+4. **Introduction to Data Analysis and Survey Sampling** — understanding core statistical reasoning and complex sample designs  
+
+---
+
+# Setting Up Your Environment
+
+Before getting started, you’ll need to install both **R** (the language) and **RStudio** (the integrated development environment).
+
+### Step 1. Install R
+
+Download and install R for your operating system:
+
+🔗 [https://cran.r-project.org/](https://cran.r-project.org/)
+
+### Step 2. Install RStudio
+
+RStudio provides an intuitive interface for writing and running R code:
+
+🔗 [https://posit.co/download/rstudio/](https://posit.co/download/rstudio/)
+
+### Step 3. Verify Installation
+
+After installing both, open **RStudio** and type:
+
+```{r}
+version
+
+# simplest: global CDN that auto-chooses a nearby mirror
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+update.packages(ask = FALSE)
+```

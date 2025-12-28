@@ -1,0 +1,367 @@
+---
+title: "Tidyverse"
+subtitle: "Tidy data, pipes, readr/readxl/haven, dplyr, tidyr, and joins"
+author: "Mamadou S Diallo, Ph.D"
+date: today
+format:
+  html:
+    theme: readable
+    toc: true
+    toc-depth: 3
+    code-fold: false
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+::: {.callout-note}
+#### Goals
+- Understand **tidy data** and what the **tidyverse** includes
+- Use the **pipe** (`%>%` and `|>`) to build readable workflows
+- Read/write files with **readr** (and see `readxl`/`haven` patterns)
+- Transform data with **dplyr** (select, filter, mutate, arrange, summarise, group_by)
+- **Join** and **reshape** data with **dplyr** and **tidyr**
+:::
+
+## Setup
+
+```{r}
+#| label: setup
+#| include: false
+# Avoid CRAN mirror errors
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+```
+
+
+Install once, 
+
+```{r}
+if (!requireNamespace("tidyverse", quietly = TRUE)) {
+  install.packages("tidyverse")
+}
+```
+
+then load every session:
+
+```{r}
+library(tidyverse)
+```
+
+---
+
+# 1. What is tidy data and the tidyverse?
+
+The **tidyverse** is a collection of R packages for data science that share a common design philosophy and consistent APIs: **readr, tibble, dplyr, tidyr, stringr, forcats, ggplot2, purrr**, and more.
+
+**Tidy data** (Wickham):  
+- Each **variable** in its own **column**  
+- Each **observation** in its own **row**  
+- Each **table** contains one type of observational unit
+
+References: https://www.tidyverse.org/ • https://r4ds.hadley.nz
+
+---
+
+# 2. The pipe: `%>%` (magrittr) and `|>` (base R)
+
+Pipes let you express transformations as a **left-to-right** sequence.
+
+Traditional:
+```r
+obj1 <- do_something(data)
+obj2 <- do_more(obj1)
+final <- do_even_more(obj2)
+```
+
+With `%>%`:
+```r
+final <- data %>%
+  do_something() %>%
+  do_more() %>%
+  do_even_more()
+```
+
+With base R `|>` (R 4.1+):
+```r
+final <- data |>
+  do_something() |>
+  do_more() |>
+  do_even_more()
+```
+
+A quick example:
+```{r}
+seq(1, 100, by = 5) |> mean()
+```
+
+> Use either pipe style; `%>%` remains idiomatic in tidyverse docs.
+
+---
+
+# 3. The `mtcars` dataset (toy example)
+
+We’ll use **mtcars** (32 rows, 11 variables). Key columns:
+- `mpg` — miles per US gallon  
+- `cyl` — number of cylinders  
+- `disp` — displacement (cu.in.)  
+- `hp` — gross horsepower  
+- `drat` — rear axle ratio  
+- `wt` — weight (1000 lbs)  
+- `qsec` — 1/4 mile time (sec)  
+- `vs` — engine (0 = V-shaped, 1 = straight)  
+- `am` — transmission (0 = automatic, 1 = manual)  
+- `gear` — number of forward gears  
+- `carb` — number of carburetors
+
+```{r}
+mtcars |>
+    as_tibble(rownames = "model") |>
+    glimpse()
+```
+
+---
+
+# 4. Read & write data (readr, readxl, haven)
+
+### 4.1 Write CSV with **readr**
+```{r}
+# Create a small tibble and write it
+mini <- tibble(id = 1:3, country = c("CAN", "DJI", "USA"), value = c(10, 20, 30))
+readr::write_csv(mini, file = "mini.csv")
+```
+
+### 4.2 Read CSV with **readr**
+```{r}
+mini2 <- readr::read_csv("mini.csv")
+mini2
+```
+
+### 4.3 Excel with **readxl** (commented here)
+```r
+# readxl::read_excel("data.xlsx")
+# readxl::read_excel("data.xlsx", sheet = "Sheet1")
+```
+
+### 4.4 SAS/Stata/SPSS with **haven** (commented here)
+```r
+# haven::read_sas("file.sas7bdat")
+# haven::read_stata("file.dta")
+# haven::read_spss("file.sav")
+```
+
+> Tip: Prefer explicit package prefixes (`readr::read_csv`) in mixed scripts.
+
+---
+
+# 5. dplyr fundamentals
+
+## 5.1 Peek at a data frame
+```{r}
+mtcars |>
+    as_tibble(rownames = "model") |>
+    glimpse()
+```
+
+## 5.2 Select columns
+```{r}
+mtcars |>
+    select(mpg, drat, wt) |>
+    head()
+mtcars |>
+    select(-drat, -wt) |>
+    head()
+mtcars |>
+    select(starts_with("c"), starts_with("ge")) |>
+    head()
+```
+
+## 5.3 Filter rows
+```{r}
+mtcars |> filter(cyl == 6)
+mtcars |> filter(cyl %in% c(4, 6))
+mtcars |> filter(cyl != 6)
+```
+
+## 5.4 Reorder columns
+```{r}
+mtcars |>
+    select(am, wt, cyl, disp, qsec, hp, drat, vs) |>
+    head()
+mtcars |>
+    select(am, wt, cyl, everything()) |>
+    head()
+```
+
+## 5.5 Sort rows
+```{r}
+mtcars |>
+    arrange(mpg) |>
+    head(10)
+mtcars |>
+    arrange(desc(mpg)) |>
+    head(10)
+mtcars |>
+    arrange(desc(cyl), am, desc(mpg)) |>
+    head(15)
+```
+
+---
+
+# 6. Mutate & string operations
+
+Create new variables with `mutate()`; conditional logic with `case_when()`; string tools with **stringr**.
+
+```{r}
+mtcars |>
+    mutate(
+        kpl = mpg * 0.425144, # miles/US gal → km/l
+        qmins = qsec / 60,
+        cyl_size = case_when(
+            cyl <= 4 ~ "Low power",
+            cyl >= 8 ~ "High power",
+            TRUE ~ "Medium power"
+        ),
+        cyl_upper = str_to_upper(cyl_size),
+        cyl_lower = str_to_lower(cyl_size),
+        cyl_title = str_to_title(cyl_size),
+        cyl_nospace = str_remove(cyl_size, " "),
+        cyl_nopower = str_remove(cyl_size, " power")
+    ) |>
+    select(mpg, kpl, qsec, qmins, cyl, cyl_size, cyl_upper, cyl_lower, cyl_title, cyl_nospace, cyl_nopower) |>
+    head(5)
+```
+
+**Exercise.** Create `wt_kg = wt * 1000 * 0.453592` and print `(wt, wt_kg)`.
+
+**Exercise.** Create `trans = if_else(am == 1, "manual", "automatic")` and tabulate counts.
+
+**Exercise.** Replace `"power"` with `"cycle"` in `cyl_size` using `str_replace()`.
+
+---
+
+# 7. Summaries
+
+Overall summary:
+```{r}
+mtcars |>
+    summarise(
+        n = n(),
+        mean_mpg = mean(mpg),
+        sd_mpg = sd(mpg),
+        max_wt = max(wt)
+    )
+```
+
+Grouped summaries:
+```{r}
+mtcars |>
+    group_by(am) |>
+    summarise(
+        n = n(),
+        mean_mpg = mean(mpg),
+        sd_mpg = sd(mpg),
+        max_wt = max(wt),
+        .groups = "drop"
+    )
+```
+
+**Exercises.**
+- Compute mean and sd of `disp`, `hp`, and `qsec` by `cyl`.
+- Compute the same by `vs` **and** `am` jointly.
+
+---
+
+# 8. Combining data (bind & joins)
+
+Toy tables from dplyr:
+```{r}
+band_members |> head()
+band_instruments |> head()
+```
+
+### 8.1 Stack/Combine
+```{r}
+# Row-bind (must have same columns)
+bind_rows(
+    tibble(name = "John", band = "Beatles"),
+    tibble(name = "Paul", band = "Beatles")
+)
+
+# Column-bind (must have same row count)
+bind_cols(
+    tibble(a = 1:3),
+    tibble(b = letters[1:3])
+)
+```
+
+### 8.2 Joins
+```{r}
+inner_join(band_members, band_instruments, by = "name") |> head()
+
+left_join(band_members, band_instruments, by = "name") |> head()
+
+right_join(band_members, band_instruments, by = "name") |> head()
+
+full_join(band_members, band_instruments, by = "name") |> head()
+```
+
+---
+
+# 9. Reshaping data (tidyr)
+
+## 9.1 Wide → long
+
+Character-named columns:
+```{r}
+relig_income |> head(10)
+relig_income |>
+    pivot_longer(!religion, names_to = "income", values_to = "count")
+```
+
+Columns with a common prefix:
+```{r}
+billboard |> head(10)
+billboard |>
+    pivot_longer(
+        cols = starts_with("wk"),
+        names_to = "week",
+        names_prefix = "wk",
+        values_to = "rank",
+        values_drop_na = TRUE
+    )
+```
+
+Multiple observations per row:
+```{r}
+anscombe |> head(10)
+anscombe |>
+    pivot_longer(
+        everything(),
+        names_to = c(".value", "set"),
+        names_pattern = "(.)(.)"
+    )
+```
+
+## 9.2 Long → wide
+```{r}
+fish_encounters |> head(12)
+fish_encounters |>
+    pivot_wider(names_from = station, values_from = seen)
+```
+
+Fill missing:
+```{r}
+fish_encounters %>%
+    pivot_wider(names_from = station, values_from = seen, values_fill = 0)
+```
+
+---
+
+# 10. Next steps
+
+- Explore **ggplot2** for visualization
+- Learn **purrr** for iteration/functional programming
+- Use **forcats** for factor engineering
+- Apply these skills to your own datasets (CSV, Excel, Stata/SPSS/SAS)
+

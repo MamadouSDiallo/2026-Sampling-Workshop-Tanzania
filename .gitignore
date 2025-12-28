@@ -1,0 +1,94 @@
+# R
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# R session data
+.RDataTmp
+*_cache/
+*_files/
+
+# knitr and R markdown
+*.utf8.md
+*.knit.md
+.Rproj.user
+
+# pkgdown
+docs/
+
+# Quarto
+/.quarto/
+_site/
+_book/
+*_cache/
+*_files/
+/.luarc.json
+.quarto.uuid
+
+# Freeze (keep execution results cached)
+_freeze/
+
+# Python (if using)
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+
+# Node/NPM (for Tailwind)
+node_modules/
+package-lock.json
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+
+# Build outputs
+dist/
+build/
+*.html  # Only if you don't want to track built HTML files
+
+# Environment files
+.env
+.env.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+
+
+# Quarto
+/.quarto/
+_freeze/
+course_site
+
+# Tailwind
+node_modules/
+course/assets/styles/output.css
+
+data
+*.sav
+*.csv
+*.dta

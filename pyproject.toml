@@ -1,0 +1,51 @@
+[project]
+name = "sae-burundi"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "quarto>=0.1.0",
+    "quarto-cli>=1.8.25",
+]
+
+
+[dependency-groups]
+dev = [
+    "ruff>=0.13.0",
+]
+
+
+[tool.ruff]
+line-length = 79
+target-version = "py313"
+src = ["src", "tests"]
+exclude = [".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["D", "E", "F", "W", "I001"]
+ignore = ["D", "E501"]                # for development we can ignore the docs
+
+# Exclude a variety of commonly ignored directories.
+exclude = [".venv", "tests"]
+
+
+[tool.ruff.lint.pycodestyle]
+ignore-overlong-task-comments = true
+[tool.ruff.lint.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
+
+[tool.ruff.lint.isort]
+known-first-party = ["svy"]
+known-third-party = [
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "polars",
+    "pydantic",
+    "scipy",
+    "statsmodels",
+]
+lines-after-imports = 2
+lines-between-types = 1

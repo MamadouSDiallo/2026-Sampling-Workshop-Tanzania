@@ -1,0 +1,468 @@
+---
+title: "Survey Estimates"
+subtitle: "Exploration et Estimation Directe de la Pauvreté"
+author: "Mamadou S Diallo, Ph.D"
+date: today
+format:
+  html:
+    theme: readable
+    toc: true
+    toc-depth: 3
+    code-fold: false
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+
+```{r}
+
+library(dplyr)
+library(haven)
+library(srvyr)
+
+```
+
+## Exploration
+
+
+**Practice (1/9):** Lire the base sur la pauvreté et afficher les dimensions et les noms des variables.
+
+```{r}
+
+pov_data <- 
+  haven::read_sav("../data/eicvmb2020/BASE PAUVRETE.sav")
+
+# View the dimensions of the dataset
+dim(pov_data)
+
+# View the variable names
+names(pov_data)
+
+```
+
+### **Practice (2/9):** Selectionner les variables d'intérêt: 
+
+- la zone de dénombrement, 
+- le ménage, 
+- la region, 
+- le milieu de résidence, 
+- le poids d'échantillonnage, 
+- la taille du ménage, 
+- le nombre de d'adultes équivalents, 
+- le poids d'échantillonnage en adultes equivalents,
+- les indices de pauvreté absolu, le gap et l'intensité. 
+
+Afficher les 9 premières lignes du dataset.
+
+Mettre toutes les noms de variables en minisuscule. 
+
+```{r}
+
+pov_data_reduit <- 
+  pov_data |>
+  dplyr::select(
+    ID_ZD,
+    ID03,
+    ID01,
+    Milieu,
+    weight,
+    POIDS_INDIV_EA,
+    hhsize,
+    ae_scale,
+    abs_Poor,
+    pgi,
+    pseverity
+  )
+
+# View the first few rows of the dataset
+head(pov_data_reduit, 9)
+
+# Convert variable names to lowercase
+names(pov_data_reduit) <- tolower(names(pov_data_reduit))
+
+names(pov_data_reduit)
+
+```
+
+
+
+
+### **Practice (3/9):** Specifier le plan d'échantillonnage 
+
+```{r}
+
+eicvmb2020_design <- 
+  pov_data_reduit |>
+  srvyr::as_survey_design(
+    ids = id_zd,
+    strata = c(id01, milieu),
+    weights = weight
+#    nest = TRUE
+  )
+
+```
+
+
+```{r}
+
+eicvmb2020_design_with_ae <- 
+  pov_data_reduit |>
+  srvyr::as_survey_design(
+    ids = id_zd,
+    strata = c(id01, milieu),
+    weights = poids_indiv_ea
+#    nest = TRUE
+  )
+
+```
+
+
+### **Practice (4/9):** Estimer le taux de pauvreté avec un intervalle de confiance à 95%.
+
+Veuillez aussi innclude l'ecart-type et le conficient de variation. 
+
+#### Niveau du Menage
+
+```{r}
+
+est_nat <- eicvmb2020_design |>
+  dplyr::mutate(
+    pauvre = ifelse(abs_poor == 1, 1, 0)
+  ) |>
+  dplyr::summarize(
+    taux = 100 * survey_mean(
+      pauvre, 
+      vartype = c("se", "ci", "cv"), 
+      level = 0.95
+      )
+  )
+
+est_nat
+```
+
+
+#### Niveau de la Population
+
+```{r}
+
+eicvmb2020_design_with_ae |>
+  dplyr::mutate(
+    pauvre = ifelse(abs_poor == 1, 1, 0),
+    
+  ) |>
+  dplyr::summarize(
+    taux = 100 * survey_mean(pauvre, vartype = c("se", "ci", "cv"), level = 0.95)
+  )
+
+```
+
+
+### **Practice (5/9):** Estimer la profondeur et la sévérité de pauvreté avec un intervalle de confiance à 90%..
+
+Veuillez aussi innclude l'ecart-type et le coefficient de variation. 
+
+
+#### Niveau du Menage
+
+**Profondeur de pauvreté**
+
+```{r}
+
+eicvmb2020_design |>
+  dplyr::summarize(
+    prof = 100 * survey_mean(pgi, vartype = c("se", "ci", "cv"), level = 0.90)
+  )
+
+```
+
+**Sévérité de pauvreté**
+
+```{r}
+
+eicvmb2020_design |>
+  dplyr::summarize(
+    sev = 100 * survey_mean(pseverity, vartype = c("se", "ci", "cv"), level = 0.90)
+  )
+
+```
+
+
+#### Niveau de la Population
+
+**Profondeur de pauvreté**
+
+```{r}
+
+eicvmb2020_design_with_ae |>
+  dplyr::summarize(
+    prof = 100 * survey_mean(pgi, vartype = c("se", "ci", "cv"), level = 0.90)
+  )
+
+```
+
+**Sévérité de pauvreté**
+
+```{r}
+
+eicvmb2020_design_with_ae |>
+  dplyr::summarize(
+    sev = 100 * survey_mean(pseverity, vartype = c("se", "ci", "cv"), level = 0.90)
+  )
+
+```
+
+
+## Estimation par Domaine
+
+Dans cette partie, nous estimons les indicateurs de pauvreté par milieu de résidence (urbain/rural) et par région.
+
+### **Practice (6/9):** Editez la base de donnees pour ajouter des variables milieu de residence et province contenant les libellés correspondants aux codes.
+
+```{r}
+
+pov_data_labels <- 
+  pov_data_reduit |>
+  dplyr::mutate(
+    milieu_residence = dplyr::case_when(
+      milieu == 1 ~ "Urbain",
+      milieu == 2 ~ "Rural",
+      TRUE ~ "Autre"
+    ),
+    province = dplyr::case_when(
+      id01 == 1 ~ "Bubanza",
+      id01 == 2 ~ "Buzubura",
+      id01 == 3 ~ "Bururi",
+      id01 == 4 ~ "Cankuzo",
+      id01 == 5 ~ "Cibitoke",
+      id01 == 6 ~ "Gitega",
+      id01 == 7 ~ "Karusi",
+      id01 == 8 ~ "Kayanza",
+      id01 == 9 ~ "Kirundo",
+      id01 == 10 ~ "Makamba",
+      id01 == 11 ~ "Muramvya",
+      id01 == 12 ~ "Muyinga",
+      id01 == 13 ~ "Mwaro",
+      id01 == 14 ~ "Ngozi",
+      id01 == 15 ~ "Rutana",
+      id01 == 16 ~ "Ruyigi",
+      id01 == 17 ~ "Bujumbura Mairie",
+      id01 == 18 ~ "Rumonge",
+      TRUE ~ "Autre"
+    )
+  )
+
+
+pov_data_labels |>
+  dplyr::select(
+    id01,
+    province,
+    milieu,
+    milieu_residence,
+  ) |>
+  dplyr::distinct() |>
+  dplyr::arrange(id01)
+
+```
+
+
+
+
+### **Practice (7/9):** Estimer le taux de pauvreté par milieu de résidence et par province avec un intervalle de confiance à 95%.
+
+```{r}
+
+eicvmb2020_design_labels <- 
+  pov_data_labels |>
+  srvyr::as_survey_design(
+    ids = id_zd,
+    strata = c(province, milieu_residence),
+    weights = weight
+  )
+
+```
+
+```{r}
+
+est_resid <- eicvmb2020_design_labels |>
+  dplyr::mutate(
+    pauvre = ifelse(abs_poor == 1, 1, 0)
+  ) |>
+  dplyr::group_by(milieu_residence) |>
+  dplyr::summarize(
+    taux = 100 * survey_mean(
+      pauvre, 
+      vartype = c("se", "ci", "cv"), 
+      level = 0.95
+      )
+  )
+
+est_resid
+
+```
+
+
+```{r}
+
+est_province <- eicvmb2020_design_labels |>
+  dplyr::mutate(
+    pauvre = ifelse(abs_poor == 1, 1, 0)
+  ) |>
+  dplyr::group_by(province) |>
+  dplyr::summarize(
+    taux = 100 * survey_mean(
+      pauvre, 
+      vartype = c("se", "ci", "cv"), level = 0.95)
+  )
+
+est_province
+```
+
+
+```{r}
+
+est_prov_resid <- eicvmb2020_design_labels |>
+  dplyr::mutate(
+    pauvre = ifelse(abs_poor == 1, 1, 0)
+  ) |>
+  dplyr::group_by(province, milieu_residence) |>
+  dplyr::summarize(
+    taux = 100 * survey_mean(
+      pauvre, 
+      vartype = c("se", "ci", "cv"), level = 0.95)
+  )
+
+est_prov_resid
+```
+
+### **Practice (8/9):** Presenter les resultats dans une table. 
+
+```{r}
+
+library(gt)
+
+
+est_province |>
+  gt::gt() |>
+  gt::fmt_number(
+    columns = c(taux, taux_se, taux_low, taux_upp, taux_cv),
+    decimals = 2
+  ) |>
+  gt::cols_label(
+    province = "Province",
+    taux = "Taux de Pauvreté (%)",
+    taux_se = "Ecart-Type",
+    taux_low = "IC Bas",
+    taux_upp = "IC Haut",
+    taux_cv = "Coefficient de Variation (%)"
+  ) |>
+  gt::tab_header(
+    title = "Estimation du Taux de Pauvreté par Province",
+    subtitle = "EICVMB 2020"
+  )
+
+```
+
+
+```{r}
+
+# par milieu de residence
+est_resid |>
+  gt::gt() |>
+  gt::fmt_number(
+    columns = c(taux, taux_se, taux_low, taux_upp, taux_cv),
+    decimals = 2
+  ) |>
+  gt::cols_label(
+    milieu_residence = "Milieu de Résidence",
+    taux = "Taux de Pauvreté (%)",
+    taux_se = "Ecart-Type",
+    taux_low = "IC Bas",
+    taux_upp = "IC Haut",
+    taux_cv = "Coefficient de Variation (%)"
+  ) |>
+  gt::tab_header(
+    title = "Estimation du Taux de Pauvreté par Milieu de Résidence",
+    subtitle = "EICVMB 2020"
+  )
+
+```
+### **Practice (9/9):** Presenter les resultats graphiquement.
+
+Some graph showing the poverty rate by province
+
+```{r}
+
+library(ggplot2)
+
+est_province |>
+  ggplot2::ggplot(
+    ggplot2::aes(
+      x = reorder(province, -taux),
+      y = taux,
+      ymin = taux_low,
+      ymax = taux_upp
+    )
+  ) +
+  ggplot2::geom_col(fill = "steelblue") +
+  ggplot2::geom_errorbar(width = 0.2, color = "orange") +
+  ggplot2::labs(
+    title = "Taux de Pauvreté par Province",
+    x = "Province",
+    y = "Taux de Pauvreté (%)"
+  ) +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(
+    axis.text.x = ggplot2::element_text(angle = 45, hjust = 1)
+  )
+
+```
+
+
+
+```{r, fig.height=8, fig.width=8}
+
+est_province |>
+  mutate(
+    niveau = case_when(
+      taux >= est_nat$taux ~ "above",
+      TRUE ~ "below"
+    )
+  ) |>
+  ggplot(aes(
+    x = reorder(province, taux),
+    y = taux,
+    label = round(taux, 1)
+  )) +
+  geom_point(
+    stat = 'identity',
+    aes(color = niveau),
+    size = 11,              # larger circles
+    alpha = 0.9
+  ) +
+  geom_text(color = "white", size = 4, vjust = 0.4, fontface = "bold") + # centered text
+  scale_color_manual(
+    name = "Taux",
+    labels = c("Above Average", "Below Average"),
+    values = c("above" = "red", "below" = "green")
+  ) +
+  labs(
+    title = "Taux de Pauvreté par Province",
+    x = "Province",
+    y = "Taux de Pauvreté (%)"
+  ) +
+  ylim(0, 100) +
+  coord_flip() +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
+    axis.text.y = element_text(face = "bold"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.position = "top",
+    legend.title = element_text(face = "bold")
+  )
+
+
+```

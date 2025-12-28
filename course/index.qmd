@@ -1,0 +1,53 @@
+---
+title: "Sampling Workshop"
+subtitle: "Tanzania 2026"
+date: 2026-01-99
+date-format: DD MMMM YYYY
+
+# People & orgs
+affiliations:
+  - id: samplics
+    name: "Samplics LLC"
+    city: "Hoboken, NJ"
+    country: "USA"
+  - id: norc
+    name: "NORC at the University of Chicago"
+    city: "Chicago, IL"
+    country: "USA"
+
+authors:
+  - name: "Mamadou S. Diallo, Ph.D."
+    orcid: "0000-0002-0376-3631" 
+    email: "msdiallo@samplics.org"         
+    corresponding: true
+    affiliations: [Samplics, NORC]
+
+# Discoverability
+abstract: |
+  National Training on Small Area Estimation for Granular Poverty Estimates (using R software), Republic of Burundi.
+keywords: ["Survey Methods", "Complex Samples", "Poverty", "SAE", "R"]
+
+# # Publishing / branding
+# publisher: "svyLab"
+# license: "CC BY 4.0"
+# doi: ""                                 # optional
+# citation: true
+# bibliography: references.bib
+# link-citations: true
+
+format:
+  html:
+    theme: readable
+---
+
+
+
+## WEEK 1 – R Programming and Introduction to Small Area Estimation (SAE)
+
+<table style="width:100%; table-layout:auto"> <colgroup> <col style="width:6ch"> <col style="width:30ch"> <col> <col> </colgroup> <thead> <tr> <th style="white-space:nowrap">Day</th> <th>Topic</th> <th>Objectives</th> <th>Activities / Tools</th> </tr> </thead> <tbody> <tr> <td>Day 1</td> <td>Introduction to R and Data Management for Poverty Data</td> <td>Get familiar with R and RStudio; understand data types and structures (data frames, vectors, lists, matrices); perform essential data wrangling and transformation.</td> <td>Install R & RStudio; manage packages (<em>tidyverse</em>); explore sample poverty datasets; practice with <em>dplyr</em> and <em>tidyr</em> for filtering, joining, grouping, and mutating.</td> </tr> <tr> <td>Day 2</td> <td>Data Visualization for Poverty Indicators</td> <td>Create and interpret visualizations using <em>ggplot2</em>; generate simple poverty dashboards (bar charts, histograms, maps).</td> <td>Visualize household and regional indicators; map poverty rates using shapefiles (<em>sf</em>, <em>tmap</em>, <em>ggplot2</em>).</td> </tr> <tr> <td>Day 3</td> <td>Concepts and Applications of Small Area Estimation (SAE)</td> <td>Understand SAE rationale, assumptions, and levels (area/unit); recognize the role of SAE in SDG monitoring and national planning.</td> <td>Lectures, case studies, and group discussions; examples from World Bank and national applications.</td> </tr> <tr> <td>Day 4</td> <td>Area-Level SAE – Fay–Herriot Model</td> <td>Estimate district-level poverty using survey and auxiliary data; understand model diagnostics and uncertainty estimation.</td> <td>Use <em>sae</em> and <em>emdi</em> packages; hands-on model fitting, residual analysis, and MSE computation.</td> </tr> <tr> <td>Day 5</td> <td>Unit-Level SAE – EBLUP and Mixed Models</td> <td>Apply unit-level mixed models with microdata; compare results with area-level estimates.</td> <td>Use census auxiliary data and survey data.</td> </tr> </tbody> </table>
+
+
+
+## WEEK 2 – Practical Application of Small Area Estimation (SAE) for Poverty Estimates
+
+<table style="width:100%; table-layout:auto"> <colgroup> <col style="width:6ch"> <col style="width:30ch"> <col> <col> </colgroup> <thead> <tr> <th style="white-space:nowrap">Day</th> <th>Topic</th> <th>Objectives</th> <th>Activities / Tools</th> </tr> </thead> <tbody> <tr> <td>Day 6</td> <td>Preparing Survey and Auxiliary Data for SAE (Part I)</td> <td>Harmonize and clean survey and auxiliary datasets; integrate spatial and census-like information.</td> <td>Data import, recoding, merging; develop standardized “SAE-ready” dataset.</td> </tr> <tr> <td>Day 7</td> <td>Preparing Survey and Auxiliary Data for SAE (Part II)</td> <td>Finalize harmonization and model-ready datasets; perform variable selection and scaling.</td> <td>Explore correlations, standardization, outlier checks; export finalized dataset for modeling.</td> </tr> <tr> <td>Day 8</td> <td>Model Diagnostics, Validation, and Mapping</td> <td>Validate model assumptions; estimate and visualize uncertainty (MSE, CVs); produce district-level poverty maps.</td> <td>Explore models.</td> </tr> <tr> <td>Day 9</td> <td>Improvement of Models and Extended Validation</td> <td>Same as Day 8.</td> <td>Same as Day 8.</td> </tr> <tr> <td>Day 10</td> <td>Presentations & Next Steps</td> <td>Present findings with visuals and key insights; discuss policy relevance and limitations.</td> <td>Group presentations of district-level results; peer review and plenary feedback.</td> </tr> </tbody> </table>

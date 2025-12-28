@@ -1,0 +1,5 @@
+# Find it
+find . -name ".lintr" -type f
+
+# Edit it
+nano .lintr  # or vim, code, etc.

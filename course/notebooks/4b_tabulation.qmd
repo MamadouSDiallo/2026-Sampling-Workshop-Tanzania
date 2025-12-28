@@ -1,0 +1,385 @@
+---
+title: "Data Tabulation in R"
+subtitle: "Using {gt} (with dplyr & tidyr)"
+author: "Mamadou S Diallo, Ph.D."
+date: today
+format:
+  html:
+    theme: readable
+    toc: true
+    toc-depth: 3
+    code-fold: false
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+> This module mirrors the visualization module but focuses on **publication‑quality tables** with the **{gt}** package.
+
+## References
+
+- <https://gt.rstudio.com/>
+- {gt} Cookbook: <https://themockup.blog/static/gt-cookbook.html>
+- {gtExtras} gallery: <https://jthomasmock.github.io/gtExtras/>
+- `dplyr` & `tidyr`: <https://dplyr.tidyverse.org/>
+- Data: `nycflights13` <https://cran.r-project.org/package=nycflights13>
+
+
+## 1. Why **gt**?
+
+- Designed for **declarative** table building (like a “grammar of tables”).  
+- Native support for **labels, spanners, summary rows, footnotes, source notes**, and **rich formatting** (percentage, currency, dates, etc.).  
+- Outputs to **HTML, LaTeX/PDF**, and static images via `gt::gtsave()`.
+
+We’ll use the same datasets as the viz module (`flights`, `weather`) to keep continuity.
+
+::: callout-note
+**Packages used**
+
+```{r}
+#install.packages(c("gt", "dplyr", "tidyr", "nycflights13"))  # if needed
+
+library(gt)
+library(dplyr)
+library(tidyr)
+library(nycflights13)
+```
+:::
+
+
+## 2. Quick Start
+
+Create a simple one-way tabulation: **count of flights per carrier** with percent.
+
+```{r}
+tab1 <- flights |>
+  count(carrier, name = "n") |>
+  mutate(pct = n / sum(n)) |>
+  arrange(desc(n))
+
+tab1 |>
+  gt() |>
+  tab_header(
+    title = md("**Flights by Carrier (2013)**"),
+    subtitle = "NYC flights — counts and share"
+  ) |>
+  cols_label(
+    carrier = "Carrier",
+    n = "Flights",
+    pct = "Share"
+  ) |>
+  fmt_number(columns = n, decimals = 0) |>
+  fmt_percent(columns = pct, decimals = 1) |>
+  tab_source_note(md("Source: `nycflights13::flights`"))
+```
+
+
+## 3. Core Building Blocks (a mini “grammar of tables”)
+
+1. **Data preparation** (with `dplyr`, `tidyr`)  
+2. **`gt()`** to start the table  
+3. **Headings**: `tab_header()`, `tab_spanner()`  
+4. **Columns**: `cols_label()`, `cols_hide()`, `cols_move()`  
+5. **Formatting**: `fmt_number()`, `fmt_percent()`, `fmt_currency()`, `fmt_date()`  
+6. **Grouping**: `dplyr::group_by()` + `gt::tab_row_group()`  
+7. **Summaries**: `summary_rows()`, `grand_summary_rows()`  
+8. **Styling**: `tab_style()`, `tab_options()`, `opt_*()` helpers  
+9. **Footnotes & notes**: `tab_footnote()`, `tab_source_note()`  
+10. **Export**: `gtsave("table.html/png/pdf")`
+
+
+## 4. Common Tabulations
+
+### 4.1 One‑way frequency with totals
+
+```{r}
+tab_oneway <- flights |>
+  count(origin, name = "n") |>
+  mutate(pct = n / sum(n)) |>
+  arrange(desc(n)) |>
+  gt(rowname_col = "origin") |>
+  tab_header(title = "Flights by Origin", subtitle = "One-way frequency with total") |>
+  cols_label(n = "Flights", pct = "Share") |>
+  fmt_number(n, decimals = 0) |>
+  fmt_percent(pct, decimals = 1) |>
+  summary_rows(
+    groups = NULL,
+    columns = c(n, pct),
+    fns = list(Total = ~c(sum(.), sum(.))),
+    formatter = fmt_number
+  ) |>
+  tab_source_note("Source: nycflights13::flights")
+tab_oneway
+```
+
+### 4.2 Two‑way crosstab with row/column percentages
+
+```{r}
+tab_crosstab <- flights |>
+  count(origin, carrier, name = "n") |>
+  group_by(origin) |>
+  mutate(row_pct = n / sum(n)) |>
+  ungroup() |>
+  group_by(carrier) |>
+  mutate(col_pct = n / sum(n)) |>
+  ungroup() |>
+  select(origin, carrier, n, row_pct, col_pct)
+
+
+tab_crosstab
+
+
+# Pivot wider for a matrix‑like table
+xtab <- tab_crosstab |>
+  select(origin, carrier, n) |>
+  tidyr::pivot_wider(names_from = carrier, values_from = n, values_fill = 0)
+
+gt(xtab) |>
+  tab_header(title = "Flights by Origin × Carrier") |>
+  fmt_number(everything(), decimals = 0) |>
+  tab_source_note("Counts only; compute percentages similarly or display in separate tables.")
+```
+
+#### Crosstab with **within‑row percentages** inline (compact)
+
+```{r}
+xtab_rowpct <- tab_crosstab |>
+  mutate(cell = sprintf("%s
+(%1.1f%% row)", format(n, big.mark = ","), 100*row_pct)) |>
+  select(origin, carrier, cell) |>
+  tidyr::pivot_wider(names_from = carrier, values_from = cell, values_fill = "-")
+
+xtab_rowpct
+
+gt(xtab_rowpct) |>
+  tab_header(title = md("**Flights by Origin × Carrier** — counts with row %")) |>
+  tab_style(
+    style = cell_text(size = px(12), align = "center"),
+    locations = cells_body(columns = everything())
+  )
+```
+
+### 4.3 Descriptive statistics table
+
+```{r}
+desc <- weather |>
+  summarise(
+    n = n(),
+    temp_mean = mean(temp, na.rm = TRUE),
+    temp_sd   = sd(temp, na.rm = TRUE),
+    wind_mean = mean(wind_speed, na.rm = TRUE)
+  )
+
+desc
+
+gt(desc) |>
+  tab_header(title = "Weather Summary (All Observations)") |>
+  cols_label(
+    n = "N",
+    temp_mean = "Temp (mean)",
+    temp_sd = "Temp (SD)",
+    wind_mean = "Wind speed (mean)"
+  ) |>
+  fmt_number(columns = c(temp_mean, temp_sd, wind_mean), decimals = 1)
+```
+
+### 4.4 Grouped summaries with **row groups** and **summary rows**
+
+```{r}
+by_month <- weather |>
+  group_by(month) |>
+  summarise(
+    n = n(),
+    temp_mean = mean(temp, na.rm = TRUE),
+    wind_mean = mean(wind_speed, na.rm = TRUE)
+  )
+
+by_month
+
+gt(by_month) |>
+  tab_header(title = "Weather by Month") |>
+  cols_label(month = "Month", n = "N", temp_mean = "Temp (mean)", wind_mean = "Wind (mean)") |>
+  fmt_number(c(n), decimals = 0) |>
+  fmt_number(c(temp_mean, wind_mean), decimals = 1) |>
+  summary_rows(
+    groups = NULL,
+    columns = c(n, temp_mean, wind_mean),
+    fns = list(Total = ~c(sum(n), mean(temp_mean), mean(wind_mean))),
+    formatter = fmt_number
+  )
+```
+
+
+## 5. Formatting Essentials
+
+```{r}
+flights_fmt <- flights |>
+  group_by(carrier) |>
+  summarise(
+    flights = n(),
+    mean_delay = mean(arr_delay, na.rm = TRUE),
+    pct_cancelled = mean(is.na(arr_time))
+  ) |>
+  arrange(desc(flights))
+
+flights_fmt
+
+flights_fmt |>
+  gt() |>
+  cols_label(
+    carrier = "Carrier",
+    flights = "Flights",
+    mean_delay = "Mean Arrival Delay (min)",
+    pct_cancelled = "Cancelled"
+  ) |>
+  fmt_number(flights, decimals = 0) |>
+  fmt_number(mean_delay, decimals = 1) |>
+  fmt_percent(pct_cancelled, decimals = 1) |>
+  tab_spanner(
+    label = "Performance",
+    columns = c(mean_delay, pct_cancelled)
+  ) |>
+  tab_style(
+    style = cell_borders(sides = "bottom", color = "grey80", weight = px(1)),
+    locations = cells_body(columns = everything())
+  ) |>
+  opt_row_striping()
+```
+
+
+## 6. Styling & Theming
+
+```{r}
+styled <- flights_fmt |>
+  gt() |>
+  tab_header(title = md("**Flights & Delays by Carrier**")) |>
+  cols_label(
+    carrier = "Carrier", flights = "Flights",
+    mean_delay = "Mean Arr Delay", pct_cancelled = "Cancelled"
+  ) |>
+  fmt_number(flights, decimals = 0) |>
+  fmt_number(mean_delay, decimals = 1) |>
+  fmt_percent(pct_cancelled, decimals = 1) |>
+  data_color(
+    columns = mean_delay,
+    colors = scales::col_bin(
+      palette = c("#2ca02c", "#ff7f0e", "#d62728"),
+      domain = NULL, bins = c(-Inf, 0, 10, Inf)
+    )
+  ) |>
+  opt_row_striping() |>
+  tab_options(
+    table.font.size = px(14),
+    data_row.padding = px(6)
+  ) |>
+  tab_source_note("Green: early arrivals on average; red: long delays")
+styled
+```
+
+
+## 7. Footnotes, Source Notes, and Annotations
+
+```{r}
+flights_fmt |>
+  gt() |>
+  cols_label(
+    carrier = "Carrier",
+    flights = "Flights",
+    mean_delay = "Mean Arrival Delay (min)",
+    pct_cancelled = "Cancelled"
+  ) |>
+  fmt_number(flights, decimals = 0) |>
+  fmt_number(mean_delay, decimals = 1) |>
+  fmt_percent(pct_cancelled, decimals = 1) |>
+  tab_footnote(
+    footnote = "Share of flights with missing arrival time.",
+    locations = cells_column_labels(columns = pct_cancelled)
+  ) |>
+  tab_source_note(md("Source: `nycflights13::flights` — year 2013"))
+```
+
+
+## 8. Exporting Tables
+
+You can save to HTML, PNG, or PDF. For images, make sure **webshot2** is installed.
+
+```{r}
+# install.packages("webshot2")
+# webshot2::install_phantomjs()
+
+tbl <- flights_fmt |>
+  gt() |>
+  fmt_number(flights, decimals = 0)
+
+# HTML
+# gtsave(tbl, "flights-summary.html")
+
+# PNG (requires webshot2/Chromote backend)
+# gtsave(tbl, "flights-summary.png")
+
+# PDF/LaTeX (requires TeX toolchain)
+# gtsave(tbl, "flights-summary.pdf")
+```
+
+
+## 9. End‑to‑End Example (Reproduce & Adapt)
+
+**Goal:** Carrier performance for January at JFK, with totals and conditional coloring.
+
+```{r}
+jfk_jan <- flights |>
+  filter(origin == "JFK", month == 1) |>
+  group_by(carrier) |>
+  summarise(
+    flights = n(),
+    depart_ontime = mean(dep_delay <= 0, na.rm = TRUE),
+    arrive_ontime = mean(arr_delay <= 0, na.rm = TRUE),
+    avg_arr_delay = mean(arr_delay, na.rm = TRUE)
+  ) |>
+  arrange(desc(flights))
+
+jfk_jan
+
+gt(jfk_jan) |>
+  tab_header(title = md("**JFK in January — Carrier Performance**")) |>
+  cols_label(
+    carrier = "Carrier", flights = "Flights",
+    depart_ontime = "On‑time Depart (%)",
+    arrive_ontime = "On‑time Arrive (%)",
+    avg_arr_delay = "Avg Arr Delay (min)"
+  ) |>
+  fmt_number(flights, decimals = 0) |>
+  fmt_percent(c(depart_ontime, arrive_ontime), decimals = 1) |>
+  fmt_number(avg_arr_delay, decimals = 1) |>
+  data_color(
+    columns = avg_arr_delay,
+    colors = scales::col_bin(
+      palette = c("#2ca02c", "#ff7f0e", "#d62728"),
+      domain = NULL, bins = c(-Inf, 0, 10, Inf)
+    )
+  ) |>
+  grand_summary_rows(
+    columns = c(flights, depart_ontime, arrive_ontime, avg_arr_delay),
+    fns = list(
+      Total = ~c(sum(flights), mean(depart_ontime), mean(arrive_ontime), mean(avg_arr_delay))
+    ),
+    formatter = fmt_number
+  ) |>
+  tab_source_note("Source: nycflights13 — limited to JFK, January 2013")
+```
+
+
+## 10. Exercises
+
+1. **Crosstab with percentages**: Build a 2×2 table of `origin × cancelled` (use `is.na(dep_time)`), showing **counts** and **row %** in the same cell.  
+2. **Monthly weather table**: Summarize `temp (mean, sd)`, `precip (sum)`, and `wind_speed (mean)` by month; format with 1 decimal and add a grand summary row.  
+3. **Top carriers table**: Show the top 10 carriers by flights with **inline bars** via `gtExtras::gt_plt_bar_pct()` on a normalized `flights` column.  
+4. **Highlighting**: In the JFK January table, use `tab_style()` to bold the max `depart_ontime` row and color the min `avg_arr_delay` in green.
+
+
+### Key Takeaways
+
+- Treat table-building as a **pipeline**: *prepare → gt() → label → format → summarize → style → export*.  
+- Keep raw calculations in `dplyr`, and keep **presentation logic** in `{gt}`.  
+- For lightweight interactivity or pagination, consider pairing with **reactable** (not covered here) — but for **publication‑ready static tables**, {gt} shines.

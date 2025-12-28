@@ -1,0 +1,600 @@
+---
+title: "Data Visualization in R"
+subtitle: "Using GGPlot2"
+author: "Mamadou S Diallo, Ph.D"
+date: today
+format:
+  html:
+    theme: readable
+    toc: true
+    toc-depth: 3
+    code-fold: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+R is known to be one of the best tools for data visualization, thanks in large part to the success of the `ggplot2` package. `ggplot2` is part of the `tidyverse` collection.
+
+**References**
+
+- <https://ggplot2.tidyverse.org/>
+- <https://github.com/rstudio/cheatsheets>
+- <https://moderndive.com/index.html>
+
+## `ggplot2` and the grammar of graphics
+
+`ggplot2` uses a well-structured framework known as the **grammar of graphics**.
+
+The **Grammar of Graphics**, proposed by *Leland Wilkinson* and implemented in R as **ggplot2**, provides a consistent framework for building statistical graphics.
+
+It’s called a *grammar* because it defines a set of composable components — much like words in a language — that can be combined to "write" a wide variety of plots.
+
+Graphics are produced using three core components:  
+- **`data`**: the dataset containing the variables of interest  
+- **`geom`**: the geometric object (points, lines, bars, …)  
+- **`aes`**: the aesthetic attributes (position, color, shape, …)
+
+In this module, we’ll focus on five plot types:  
+- scatterplots  
+- line graphs  
+- histograms  
+- boxplots  
+- bar plots  
+
+For a more complete list of geoms, see <https://ggplot2.tidyverse.org/reference/>.
+
+
+### 1. Core Idea
+
+A ggplot graphic is built by combining layers of meaning:
+
+$$
+\text{Plot} = \text{Data} + \text{Aesthetics} + \text{Geometries} + \text{Statistics} + \text{Scales} + \text{Coordinates} + \text{Facets}
+$$
+
+
+### 2. Components of the Grammar
+
+#### 2.1 Data
+
+The dataset to visualize — usually a data frame.
+
+```{r}
+library(ggplot2)
+ggplot(data = mpg)
+```
+
+
+#### 2.2 Aesthetics (`aes`)
+
+**Aesthetic mappings** define how variables map to visual properties (x, y, color, size, etc.).
+
+```{r}
+ggplot(mpg, aes(x = displ, y = hwy, color = class))
+```
+
+- `x` → engine displacement  
+- `y` → highway mpg  
+- `color` → car class
+
+#### 2.3 Geometries (`geom_*`)
+
+**Geoms** specify *what type of shape* to draw.
+
+```{r}
+ggplot(mpg, aes(x = displ, y = hwy, color = class)) +
+  geom_point()
+```
+
+| Common Geoms | Description |
+|---------------|-------------|
+| `geom_point()` | scatterplot |
+| `geom_line()` | line chart |
+| `geom_bar()` | bar chart |
+| `geom_boxplot()` | boxplot |
+
+Each `geom_*` adds a **layer** to the plot.
+
+
+#### 2.4 Statistics (`stat_*`)
+
+A **stat** transforms the data before plotting — e.g., counts, summaries, or models.
+
+```{r}
+ggplot(mpg, aes(x = class)) +
+  geom_bar()  # uses stat_count() internally
+```
+
+You can also use a statistical layer directly:
+
+```{r}
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  stat_smooth(method = "lm", se = FALSE)
+```
+
+#### 2.5 Scales
+
+**Scales** control how data values map to aesthetics.
+
+```{r}
+ggplot(mpg, aes(x = displ, y = hwy, color = class)) +
+  geom_point() +
+  scale_color_brewer(palette = "Dark2") +
+  scale_x_log10()
+```
+
+#### 2.6 Coordinates
+
+The **coordinate system** defines how the data are projected.
+
+```{r}
+ggplot(mpg, aes(x = class, y = hwy)) +
+  geom_boxplot() +
+  coord_flip()
+```
+
+| Coordinate System | Use |
+|--------------------|-----|
+| `coord_cartesian()` | default Cartesian |
+| `coord_polar()` | pie charts, polar plots |
+| `coord_flip()` | swap x and y axes |
+
+#### 2.7 Facets
+
+**Faceting** splits data into multiple panels for comparison.
+
+```{r}
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point() +
+  facet_wrap(~ class)
+```
+
+or grid layouts:
+
+```{r}
+ggplot(mpg, aes(x = displ, y = hwy)) +
+  geom_point() +
+  facet_grid(drv ~ cyl)
+```
+
+### 3. Putting It All Together
+
+```{r}
+ggplot(mpg, aes(x = displ, y = hwy, color = class)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_color_brewer(palette = "Dark2") +
+  labs(
+    title = "Fuel Efficiency by Engine Size",
+    x = "Engine displacement (L)",
+    y = "Highway MPG",
+    color = "Car Class"
+  ) +
+  theme_minimal()
+```
+
+
+### 4. Summary Table
+
+| Component | Question It Answers | Example |
+|------------|---------------------|----------|
+| **Data** | What are we plotting? | `mpg` |
+| **Aesthetics** | How are variables mapped? | `aes(x = displ, y = hwy)` |
+| **Geometry** | What shapes represent data? | `geom_point()` |
+| **Statistics** | Any summaries or models? | `stat_smooth()` |
+| **Scales** | How are values mapped visually? | `scale_color_brewer()` |
+| **Coordinates** | What projection is used? | `coord_flip()` |
+| **Facets** | Should we split by groups? | `facet_wrap(~ class)` |
+
+
+### 5. Key Takeaways
+
+- **Compositional design** → you layer independent components.  
+- **Consistency** → the same logic works across plot types.  
+- **Extensibility** → you can define your own geoms, stats, or scales.
+
+> The Grammar of Graphics is not just about R — it’s a universal framework that inspired libraries such as **Altair**, **Plotnine**, and **Vega-Lite**.
+
+
+## More Examples of Graphics
+
+### Scatterplots with `geom_point()`
+
+We’ll use the `flights` data frame from `nycflights13`.
+
+```{r}
+#| message: false
+
+install.packages("dplyr")
+install.packages("nycflights13")
+install.packages("RColorBrewer")
+
+library(dplyr)
+library(nycflights13)
+library(RColorBrewer)
+
+flights |> glimpse()
+```
+
+```{r}
+ggplot2::ggplot(
+  data = flights,
+  mapping = aes(x = dep_delay, y = arr_delay)
+) +
+  geom_point()
+```
+
+Using the base pipe:
+
+```{r}
+flights |>
+  ggplot2::ggplot(
+    mapping = aes(x = dep_delay, y = arr_delay)
+  ) +
+  geom_point()
+```
+
+We can manipulate the data prior to plotting:
+
+```{r}
+flights |>
+  head(15)
+```
+
+```{r}
+flights |>
+  dplyr::filter(carrier == "AS") |>
+  ggplot2::ggplot(
+    mapping = aes(x = dep_delay, y = arr_delay)
+  ) +
+  geom_point() # scatterplot
+```
+
+Improve readability with transparency (`alpha`):
+
+```{r}
+flights |>
+  dplyr::filter(carrier == "AS") |>
+  ggplot2::ggplot(
+    mapping = aes(x = dep_delay, y = arr_delay)
+  ) +
+  geom_point(alpha = 0.2)
+```
+
+Or jitter the points to reduce overlap:
+
+```{r}
+flights |>
+  dplyr::filter(carrier == "AS") |>
+  ggplot2::ggplot(
+    mapping = aes(x = dep_delay, y = arr_delay)
+  ) +
+  geom_jitter(width = 30, height = 30)
+```
+
+::: callout-exercise
+**Exercise:** Create a scatterplot (same `x` and `y` as above) for carrier **AA** with **JFK** as the departure airport.
+:::
+
+Add titles, captions, and axis formatting:
+
+```{r}
+flights |>
+  dplyr::filter(carrier == "AS") |>
+  ggplot2::ggplot(
+    mapping = aes(x = dep_delay, y = arr_delay),
+  ) +
+  geom_jitter(width = 30, height = 30) +
+  scale_x_continuous(labels = scales::comma, breaks = seq(-50, 250, 50), limits = c(-50, 250)) +
+  scale_y_continuous(labels = scales::comma, breaks = seq(-100, 200, 50), limits = c(-100, 200)) +
+  labs(
+    title = "2013 NYC Flights",
+    subtitle = "Scatter plot of departure vs arrival delays",
+    caption = "Source: R package nycflights13",
+    x = "Departure delay",
+    y = "Arrival delay"
+  )
+```
+
+You can also apply themes and tweak them with `theme()`.
+
+**References**
+
+- Themes: <https://ggplot2.tidyverse.org/reference/ggtheme.html>  
+- ColorBrewer palettes: <https://colorbrewer2.org/#type=sequential&scheme=BuGn&n=3>  
+- Gallery: <https://r-graph-gallery.com/38-rcolorbrewers-palettes.html>
+
+```{r}
+flights |>
+  dplyr::filter(carrier == "UA") |>
+  ggplot2::ggplot(
+    mapping = aes(x = dep_delay, y = arr_delay, colour = origin),
+  ) +
+  geom_jitter(width = 30, height = 30) +
+  scale_x_continuous(labels = scales::comma, breaks = seq(-50, 250, 50), limits = c(-50, 250)) +
+  scale_y_continuous(labels = scales::comma, breaks = seq(-100, 200, 50), limits = c(-100, 200)) +
+  labs(
+    title = "2013 NYC Flights",
+    subtitle = "Scatter plot of departure vs arrival delays",
+    caption = "Source: R package nycflights13",
+    x = "Departure delay",
+    y = "Arrival delay"
+  ) +
+  scale_color_brewer(palette = "Dark2") +
+  theme_bw(base_size = 14) +
+  theme(
+    legend.title = element_blank()
+  )
+```
+
+### Line graphs with `geom_line()`
+
+For the remaining plot types, we’ll use the `weather` dataset from `nycflights13`.
+
+```{r}
+weather |>
+  ggplot2::ggplot(
+    mapping = aes(x = time_hour, y = temp)
+  ) +
+  geom_line()
+```
+
+```{r}
+weather |>
+  dplyr::filter(origin == "JFK", month == 1, day <= 15) |>
+  ggplot2::ggplot(
+    mapping = aes(x = time_hour, y = temp)
+  ) +
+  geom_line()
+```
+
+```{r}
+weather |>
+  dplyr::filter(origin == "EWR", month == 1, day <= 15) |>
+  ggplot2::ggplot(
+    mapping = aes(x = time_hour, y = temp)
+  ) +
+  geom_line() +
+  scale_y_continuous(labels = scales::comma, breaks = seq(20, 80, 10), limits = c(20, 80)) +
+  labs(
+    title = "2013 NYC Flights",
+    subtitle = "Temperature at EWR for the first half of January 2013",
+    caption = "Source: R package nycflights13",
+    y = "Temperature (ºF)",
+    x = "Date"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    axis.text.x = element_blank()
+  )
+```
+
+::: callout-exercise
+**Exercise:** Create a line graph like the above for **EWR** for the **second half of June**.
+:::
+
+::: callout-exercise
+**Exercise:**  
+• Create a line graph for the **second half of June**.  
+• Show each **origin** airport as a separate line.
+:::
+
+### Histograms with `geom_histogram()`
+
+```{r}
+weather |>
+  ggplot2::ggplot(
+    mapping = aes(x = temp)
+  ) +
+  geom_histogram()
+```
+
+Add white borders between bars:
+
+```{r}
+weather |>
+  ggplot2::ggplot(
+    mapping = aes(x = temp)
+  ) +
+  geom_histogram(color = "white")
+```
+
+Color the bars:
+
+```{r}
+weather |>
+  ggplot2::ggplot(
+    mapping = aes(x = temp)
+  ) +
+  geom_histogram(color = "white", fill = "steelblue")
+```
+
+Control the number of bins (default is 30):
+
+```{r}
+weather |>
+  ggplot2::ggplot(
+    mapping = aes(x = temp)
+  ) +
+  geom_histogram(bins = 10, color = "white", fill = "steelblue")
+```
+
+Facet by month:
+
+```{r}
+weather |>
+  ggplot2::ggplot(
+    mapping = aes(x = temp)
+  ) +
+  geom_histogram(color = "white", fill = "steelblue") +
+  facet_wrap(~month)
+```
+
+::: callout-exercise
+**Exercise:** Create histograms by month with red bars and `bins = 9`.
+:::
+
+::: callout-exercise
+**Exercise:** Repeat the previous plot but label months with names instead of numbers.
+:::
+
+### Boxplots with `geom_boxplot()`
+
+Side-by-side boxplots of hourly temperatures by month:
+
+```{r}
+weather |>
+  ggplot2::ggplot(
+    mapping = aes(x = month, y = temp)
+  ) +
+  geom_boxplot()
+```
+
+Use `factor()` to treat month as categorical:
+
+```{r}
+weather |>
+  ggplot2::ggplot(
+    mapping = aes(x = factor(month), y = temp)
+  ) +
+  geom_boxplot()
+```
+
+With labels and theme:
+
+```{r}
+weather |>
+  ggplot2::ggplot(
+    mapping = aes(x = factor(month), y = temp)
+  ) +
+  geom_boxplot() +
+  scale_y_continuous(labels = scales::comma, breaks = seq(0, 100, 20), limits = c(0, 100)) +
+  labs(
+    title = "2013 NYC Flights",
+    subtitle = "Boxplot of temperature by month",
+    caption = "Source: R package nycflights13",
+    y = "Temperature",
+    x = "Month"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    legend.title = element_blank()
+  )
+```
+
+Add month names and fill by origin:
+
+```{r}
+weather |>
+  ggplot2::ggplot(
+    mapping = aes(
+      x = factor(
+        month,
+        levels = 1:12,
+        labels = c(
+          "January", "February", "March", "April", "May", "June", "July", "August",
+          "September", "October", "November", "December"
+        )
+      ),
+      y = temp, fill = origin
+    )
+  ) +
+  geom_boxplot() +
+  scale_y_continuous(labels = scales::comma, breaks = seq(0, 100, 20), limits = c(0, 100)) +
+  labs(
+    title = "2013 NYC Flights",
+    subtitle = "Boxplot of temperature by month and departure airport",
+    caption = "Source: R package nycflights13",
+    y = "Temperature",
+    x = "Month"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    legend.title = element_blank(),
+    axis.text.x = element_text(angle = 100)
+  )
+```
+
+### Bar plots with `geom_bar()` and `geom_col()`
+
+`geom_bar()` and `geom_col()` produce similar visuals but differ by input data:  
+- If counts are **not** precomputed, use `geom_bar()` (it counts rows for you).  
+- If counts **are** precomputed, use `geom_col()` and map `y` to the count column.
+
+```{r}
+flights |>
+  ggplot2::ggplot(
+    mapping = aes(x = carrier)
+  ) +
+  geom_bar()
+```
+
+```{r}
+flights |>
+  ggplot2::ggplot(
+    mapping = aes(x = carrier, fill = origin)
+  ) +
+  geom_bar()
+```
+
+```{r}
+flights |>
+  ggplot2::ggplot(
+    mapping = aes(x = carrier, colour = origin)
+  ) +
+  geom_bar()
+```
+
+```{r}
+flights |>
+  ggplot2::ggplot(
+    mapping = aes(x = carrier, fill = origin)
+  ) +
+  geom_bar(position = "dodge")
+```
+
+When some categories have few observations, `position_dodge()` with `preserve = "single"` helps keep bar widths consistent:
+
+```{r}
+flights |>
+  ggplot2::ggplot(
+    mapping = aes(x = carrier, fill = origin)
+  ) +
+  geom_bar(position = position_dodge(preserve = "single"))
+```
+
+Facet by origin:
+
+```{r}
+flights |>
+  ggplot2::ggplot(
+    mapping = aes(x = carrier, fill = origin)
+  ) +
+  geom_bar(position = position_dodge(preserve = "single")) +
+  facet_wrap(~origin, ncol = 1)
+```
+
+Nice presentation with labels and theme:
+
+```{r}
+flights |>
+  ggplot2::ggplot(
+    mapping = aes(x = carrier, fill = origin)
+  ) +
+  geom_bar(position = position_dodge(preserve = "single"), show.legend = FALSE) +
+  facet_wrap(~origin) +
+  labs(
+    title = "2013 NYC Flights",
+    subtitle = "Bar plot of carriers by departure airport",
+    caption = "Source: R package nycflights13",
+    y = NULL,
+    x = NULL
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    legend.title = element_blank(),
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)
+  )
+```

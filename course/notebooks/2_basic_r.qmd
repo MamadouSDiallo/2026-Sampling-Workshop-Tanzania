@@ -1,0 +1,460 @@
+---
+title: "Basic R"
+subtitle: "Syntax, Types, Data Structures, Control Flow, and Functions"
+author: "Mamadou S Diallo, Ph.D"
+date: today
+format:
+  html:
+    theme: readable
+    toc: true
+    toc-depth: 3
+    code-fold: false
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+::: {.callout-note}
+#### What you’ll learn
+- Basic R **syntax** and **types**
+- Core **data structures** (vectors, lists, matrices, arrays, data frames, factors)
+- **Control flow** (if/else, for/while/repeat, break/next)
+- Writing **functions** (arguments, return values, defaults)
+:::
+
+## Setup
+
+```{r}
+#| label: setup
+#| include: false
+# Ensure CRAN is set (avoids "trying to use CRAN without setting a mirror")
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+```
+
+### Recommended free resources
+- R for Data Science (2e): https://r4ds.hadley.nz  
+- Base R cheatsheets (Posit): https://posit.co/resources/cheatsheets/  
+- CRAN “An Introduction to R”: https://cran.r-project.org/doc/manuals/r-release/R-intro.html  
+
+---
+
+# 1. Why R?
+
+R is a free, open-source language built for statistics and data analysis—with a huge package ecosystem and a supportive community.
+
+- **Free & open source**  
+- **Designed for statistics** and graphics  
+- **Extensible**: thousands of packages for everything from survey methods to Bayesian modeling  
+- **Well supported** in academia and industry  
+
+---
+
+# 2. Basic Syntax
+
+Assignment, printing, and basic arithmetic:
+
+```{r}
+x <- 2        # assignment (preferred in R)
+y <- 3 + 2    # arithmetic
+print(x)
+print("Hi all")
+```
+
+**Exercise 1.1.** Print `"Hello World"`.
+
+```{r}
+#| code-fold: true
+
+print("Hello World")
+```
+
+**Exercise 1.2.** Compute the sum of 5 and 7, store it in `s`, and print `s`.
+
+```{r}
+#| code-fold: true
+
+s <- 5 + 7
+print(s)
+```
+
+---
+
+# 3. Basic Types
+
+Common atomic types: **character**, **double** (numeric), **logical**.
+
+```{r}
+my_string <- "Hello World!"  # character
+typeof(my_string)
+
+x <- 5                       # double (numeric)
+typeof(x)
+
+flag <- FALSE                # logical
+typeof(flag)
+```
+
+> **Note:** `NA` represents missing values in R (not `None`).
+
+---
+
+# 4. Operators
+
+Arithmetic: `+ - * /`, remainder `%%`, integer division `%/%`, exponent `^`.
+
+```{r}
+13 %% 7      # remainder
+3^7          # exponent
+```
+
+Relational: `> >= < <= == !=`  
+
+Logical: `&` (and), `|` (or), `!` (not)
+
+```{r}
+5 > 3
+TRUE | FALSE
+```
+
+---
+
+# 5. Vectors
+
+Vectors hold elements of the **same type**.
+
+```{r}
+x <- c(1, 2, 3, 4, 5)   # numeric
+l <- c(TRUE, FALSE, TRUE)
+```
+
+Sequences:
+
+```{r}
+1:5
+seq(from = 1, to = 10, by = 2)
+seq(1, 5, length.out = 7)
+```
+
+Vectorized operations (element-wise):
+
+```{r}
+x <- seq(1, 5, length.out = 5)
+y <- c(-2, -1, 0, 1, 2)
+x * y
+```
+
+**Exercise 3.1.** Create and print a vector `10, 15, 20, 25, 30`.
+
+```{r}
+#| code-fold: true
+
+seq(10, 30, by = 5)
+```
+
+**Exercise 3.2.** Create two length-5 integer vectors and print the **remainder** of `x / y`.
+
+```{r}
+#| code-fold: true
+
+x <- c(12, 3, 45, 18, 7)
+y <- c(7, 5, 23, 6, 2)
+x %% y
+```
+
+> **Recycling rule:** If lengths differ, R “recycles” the shorter vector—often a source of bugs. Keep lengths equal unless that’s your intention.
+
+---
+
+# 6. Lists
+
+Lists can mix types and structures.
+
+```{r}
+x <- list(1, TRUE, "Hello")
+x
+```
+
+Name elements and access by **name** or **position**:
+
+```{r}
+names(x) <- c("item1", "item2", "item3")
+x[["item2"]]     # element (contents)
+x["item2"]       # sublist (still a list)
+x[[1]]           # element by position
+```
+
+Modify safely (use double brackets and `list()` to add):
+
+```{r}
+x[["new_vec"]] <- list(c(1, 2, 3))
+x[["item2"]] <- FALSE
+x[["item1"]] <- NULL    # remove element
+x
+```
+
+---
+
+# 7. Matrices
+
+2D numeric objects with fixed rows/cols.
+
+```{r}
+m1 <- matrix(1:6, nrow = 2, ncol = 3, byrow = TRUE)
+m2 <- matrix(7:12, nrow = 2, ncol = 3, byrow = TRUE)
+m1; m2
+```
+
+Dimnames and indexing:
+
+```{r}
+rnames <- c("row1", "row2")
+cnames <- c("col1", "col2", "col3")
+m <- matrix(1:6, nrow = 2, ncol = 3, dimnames = list(rnames, cnames))  # dimnames (plural)
+m["row1", "col2"]
+m[1, ]           # first row
+m[, 3]           # third column
+m[1:2, 1:2]
+```
+
+Element-wise vs matrix multiplication:
+
+```{r}
+m1 * m2      # element-wise
+t(m1) %*% m2 # matrix multiplication requires conformable dims
+```
+
+---
+
+# 8. Arrays
+
+Arrays are like matrices with **>2 dimensions**.
+
+```{r}
+arr <- array(1:12, dim = c(2, 3, 2))  # 2 rows, 3 cols, 2 layers
+arr
+arr[ , , 1]
+```
+
+---
+
+# 9. Data Frames
+
+Tabular data with **named columns** that can have different types.
+
+```{r}
+country <- c("CAN", "DJI", "MEX", "KSA", "SEN", "USA")
+continent <- c("Americas", "Africa", "Americas", "Asia", "Africa", "Americas")
+income <- c("High", "Lower-Middle", "Upper-Middle", "High", "Lower-Middle", "High")
+independence <- as.Date(c("1867-07-01","1977-06-27","1810-09-16","1932-09-23","1960-04-04","1776-07-04"))
+population_m <- c(38, 1, 131, 36, 18, 334)
+
+df <- data.frame(country, continent, income, independence, population_m, stringsAsFactors = FALSE)
+df
+summary(df)
+```
+
+Selecting rows/columns:
+
+```{r}
+df[c("country", "population_m")]
+df[1:4, ]
+```
+
+Add a column / row:
+
+```{r}
+df$capital <- c("Ottawa","Djibouti","Mexico City","Riyadh","Dakar","Washington, D.C.")
+new_row <- data.frame(country="ZMB", continent="Africa", income="Lower-Middle",
+                      independence=as.Date("1964-10-24"), population_m=19, capital="Lusaka")
+df2 <- rbind(df, new_row)
+tail(df2, 2)
+```
+
+---
+
+# 10. Factors
+
+Categorical data with defined **levels**.
+
+```{r}
+sex_codes <- c(1, 2, 1, 2, 1, 2, 1, 1)
+gender <- factor(sex_codes, levels = c(1, 2), labels = c("Female", "Male"))
+is.factor(gender)
+gender
+```
+
+Reordering levels:
+
+```{r}
+gender2 <- factor(gender, levels = c("Male", "Female"))
+levels(gender2)
+```
+
+Generate factor levels:
+
+```{r}
+gl(3, 4, labels = c("High", "Middle", "Low"))
+```
+
+---
+
+# 11. Control Flow
+
+## Decisions
+
+```{r}
+sex <- 1
+if (sex == 1) {
+  print("Female")
+} else {
+  print("Male or unknown")
+}
+```
+
+`if/else if/else`:
+
+```{r}
+sex <- 9
+if (sex == 1) {
+  print("Female")
+} else if (sex == 2) {
+  print("Male")
+} else {
+  print("Unknown")
+}
+```
+
+`switch()` (numeric index selects a case; unmatched returns `NULL`):
+
+```{r}
+switch(2, "first", "second", "third")   # "second"
+switch(99, "first", "second", "third")  # NULL
+```
+
+## Loops (with correct indexing)
+
+**For loop**:
+
+```{r}
+countries <- c("CAN","DJI","MEX","KSA","SEN","USA")
+for (iso3 in countries) {
+  print(iso3)
+}
+```
+
+**While loop**:
+
+```{r}
+i <- 1
+while (i <= length(countries)) {
+  print(countries[i])
+  i <- i + 1
+}
+```
+
+**Repeat loop**:
+
+```{r}
+i <- 1
+repeat {
+  print(countries[i])
+  i <- i + 1
+  if (i > length(countries)) break
+}
+```
+
+## Branching: `break` / `next`
+
+```{r}
+for (iso3 in countries) {
+  if (iso3 %in% c("DJI","SEN","ZMB")) {
+    print("Found an African country")
+    break   # exit loop
+  }
+  print(iso3)
+}
+```
+
+```{r}
+for (iso3 in countries) {
+  if (iso3 == "KSA") next  # skip KSA
+  print(iso3)
+}
+```
+
+> **Tip:** Prefer **vectorized** operations over explicit loops when possible—they’re faster and clearer.
+
+---
+
+# 12. Functions
+
+Functions encapsulate reusable logic.
+
+```{r}
+# name <- function(arg1, arg2 = default, ...) { body; return(value) }
+```
+
+Built-ins:
+
+```{r}
+population_m <- c(38, 1, 131, 36, 18, 334)
+sum(population_m)
+mean(population_m)
+```
+
+A simple user function:
+
+```{r}
+sum2 <- function(vec) {
+  ss <- 0
+  for (v in vec) ss <- ss + v
+  ss  # last expression is returned
+}
+sum2(population_m)
+```
+
+**Exercise 12.1.** Write `mean2(vec)` that returns the average of a numeric vector.
+
+```{r}
+#| code-fold: true
+
+mean2 <- function(vec) {
+    ss <- 0
+    for (v in vec) ss <- ss + v
+    ss / length(vec)
+}
+mean2(population_m)
+stopifnot(all.equal(mean2(population_m), mean(population_m)))
+```
+
+Functions calling functions:
+
+```{r}
+sum3 <- function(vec) {
+  ss <- sum(vec)       # use vectorized base function
+  ss
+}
+sum3(population_m)
+```
+
+Default arguments and named calls:
+
+```{r}
+hypot <- function(a = 3, b = 4) sqrt(a^2 + b^2)
+hypot()
+hypot(2, 3)
+hypot(b = 12, a = 5)
+```
+
+---
+
+## Wrap-up & Next steps
+
+- You’ve covered the core of base R.  
+- Next: **`tidyverse`** workflows (`dplyr`, `readr`, `tidyr`) and **ggplot2**.  
+- If you’re moving toward *survey methods*: we’ll bridge to design-based estimation with **`svy`** in a later module.
+
+::: {.callout-tip}
+If you’re using these notes in Quarto slides, I can supply a matching `revealjs` deck with the same examples and embedded exercises.
+:::

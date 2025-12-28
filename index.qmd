@@ -1,0 +1,20 @@
+---
+# title: "svy Documentation"
+sidebar: true
+---
+
+
+
+`s‍vy` is a Python package for designing and analyzing **complex survey data**.
+
+Large-scale surveys are often selected using complex random mechanisms such as
+**stratification**, **clustering**, or **unequal probabilities**. To produce accurate
+estimates, statistical analyses must account for the sampling design.
+`s‍vy` provides a unified toolkit for working with these designs, ensuring that
+inferences correctly reflect the underlying population.
+
+`svy` provides a comprehensive set of tools to support quantitative survey research.
+
+
+
+
